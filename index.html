@@ -216,6 +216,7 @@ button.rcard:hover{border-color:var(--accent)}
     <div class="card hidden" id="ex-card" style="border-color:var(--warn)"></div>
     <div class="card hidden" id="dst-card" style="border-color:var(--warn)"></div>
     <div class="card hidden" id="pp-card" style="border-color:var(--warn)"></div>
+    <div class="card hidden" id="ac-card" style="border-color:var(--warn)"></div>
     <button type="button" class="card rcard" id="rep-tile" aria-expanded="false" aria-controls="rep-full">
       <div class="row between"><h3>Resumen de <span id="rt-mes"></span></h3><span class="small" style="color:var(--accent);font-weight:600" id="rt-ver">Ver resumen ↓</span></div>
       <div class="rt" id="rt-kpis"></div>
@@ -786,7 +787,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-destetar]"
     await mover(xs.map(x=>x.a.numero),r,l.id,hoy(),"Destete (4 meses)");toast(`${plural(xs.length,"becerro movido","becerros movidos")} a ${l.nombre} en ${r}`)})});
 
 function renderResumen(){
-  renderAlimAlerta();renderInsAlerta();renderExAlerta();renderDestetes();renderPorParir();
+  renderAlimAlerta();renderInsAlerta();renderExAlerta();renderDestetes();renderPorParir();renderAcercar();
   const act=activos(),anio=String(new Date().getFullYear());
   $("#st-cab").textContent=act.length;
   $("#st-anio").textContent=anio;
@@ -1022,7 +1023,7 @@ function historial(a){
   S.eventos.filter(e=>(e.animales||[]).includes(n)).forEach(e=>ev.push({f:e.fecha,c:e.creado||0,t:`<span class="pill">${esc(e.tipo)}</span> ${esc(e.producto||"")}${e.diagnostico?` · <b>${esc(e.diagnostico)}</b>`:""}${e.dosis?` · ${esc(e.dosis)}`:""}`}));
   S.partos.filter(p=>p.madre===n).forEach(p=>ev.push({f:p.fecha,c:p.creado||0,t:`<span class="pill warn">Parto</span> ${esc(p.resultado||"")}${p.cria?` · cría ${esc(p.cria)}`:""}${p.sexo?` (${esc(p.sexo)})`:""}`}));
   S.pesos.filter(p=>p.animal===n).forEach(p=>ev.push({f:p.fecha,c:p.creado||0,t:`<span class="pill">Peso</span> ${fKg(p.kg)}`}));
-  S.palpaciones.filter(p=>p.animal===n).forEach(p=>ev.push({f:p.fecha,c:p.creado||0,t:`<span class="pill">Palpación</span> ${p.resultado==="Preñada"?`Preñada${p.meses?` · ~${p.meses} meses`:""}`:"Vacía"}${p.nota?` · ${esc(p.nota)}`:""}`}));
+  S.palpaciones.filter(p=>p.animal===n).forEach(p=>ev.push({f:p.fecha,c:p.creado||0,t:`<span class="pill">Palpación</span> ${p.resultado==="Preñada"?`Preñada${!vacio(p.dias)?` · ~${p.dias} días`:p.meses?` · ~${p.meses} meses`:""}`:"Vacía"}${p.nota?` · ${esc(p.nota)}`:""}`}));
   S.partos.filter(p=>p.cria===n).forEach(p=>ev.push({f:p.fecha,c:p.creado||0,t:`Nació · madre ${esc(p.madre)}`}));
   if(a.baja)ev.push({f:a.baja.fecha,c:a.baja.creado||0,t:`<span class="pill warn">Baja</span> ${esc(a.baja.motivo)}`});
   ev.sort((x,y)=>cmpN(y.f,x.f)||y.c-x.c);
@@ -1326,10 +1327,20 @@ function renderPorParir(){const xs=porParir(),c=$("#pp-card");c.classList.toggle
   <div class="tagbtns">${xs.map(x=>`<button type="button" class="tagbtn" data-animal="${esc(x.a.id)}">${esc(x.a.numero)}<span style="display:block;font-size:11px;font-family:var(--f-body);font-weight:600;opacity:.8">${x.f<h?"pasada":fCorta(x.f)}</span></button>`).join("")}</div>
   <div class="muted small">${RANCHOS.map(r=>{const n=xs.filter(x=>x.a.rancho===r).length;return n?`${r}: ${n}`:""}).filter(Boolean).join(" · ")}</div>`}
 const GEST=283;
-function partoProb(pz){if(!pz||pz.resultado!=="Preñada"||pz.meses==null||pz.meses==="")return"";return addDias(pz.fecha,Math.round(GEST-(+pz.meses)*30.4))}
+const vacio=v=>v==null||v==="";
+function diasPz(pz){if(!pz||pz.resultado!=="Preñada")return null;if(!vacio(pz.dias))return +pz.dias;if(!vacio(pz.meses))return Math.round(+pz.meses*30.4);return null}
+function diasHoy(pz){const d=diasPz(pz);return d==null?null:d+Math.round((new Date(hoy())-new Date(pz.fecha))/864e5)}
+function partoProb(pz){const d=diasPz(pz);return d==null?"":addDias(pz.fecha,Math.round(GEST-d))}
+const ACERCAR=[210,230];
+const ranchosOrdena=()=>RANCHOS.filter(r=>lotesDe(r).some(l=>/orde[ñn]/i.test(l.nombre)));
+function porAcercar(){return activos().filter(a=>a.prenez?.resultado==="Preñada").map(a=>({a,d:diasHoy(a.prenez)})).filter(x=>x.d!=null&&x.d>=ACERCAR[0]).sort((x,y)=>y.d-x.d)}
+function renderAcercar(){const xs=porAcercar(),c=$("#ac-card");c.classList.toggle("hidden",!xs.length);if(!xs.length)return;const ro=ranchosOrdena(),falta=xs.filter(x=>!ro.includes(x.a.rancho));
+  c.innerHTML=`<div class="row between"><h3>Acercar a ordeña</h3><span class="pill warn">${falta.length||xs.length}</span></div><div class="muted small">Preñadas de ${ACERCAR[0]} días o más (${ACERCAR[0]} a ${ACERCAR[1]} es cuando hay que acercarlas). Ranchos con ordeña: ${ro.length?ro.join(", "):"ninguno con lote de Ordeña"}.</div>
+  <div class="tagbtns">${xs.map(x=>`<button type="button" class="tagbtn" data-animal="${esc(x.a.id)}" ${ro.includes(x.a.rancho)?'style="opacity:.55"':""}>${esc(x.a.numero)}<span style="display:block;font-size:11px;font-family:var(--f-body);font-weight:600;opacity:.8">${x.d} días</span></button>`).join("")}</div>
+  <div class="muted small">${RANCHOS.map(r=>{const n=xs.filter(x=>x.a.rancho===r).length;return n?`${r}: ${n}${ro.includes(r)?" (ya tiene ordeña)":""}`:""}).filter(Boolean).join(" · ")}</div>`}
 function txtPrenez(a){const pz=a.prenez;if(!pz)return"";if(pz.resultado!=="Preñada")return`Vacía (palpada ${fmtF(pz.fecha)})`;const pp=partoProb(pz);
-  const hoyM=pz.meses!=null&&pz.meses!==""?Math.round((+pz.meses+(new Date(hoy())-new Date(pz.fecha))/864e5/30.4)*2)/2:null;
-  return`Preñada${hoyM!=null?` · ~${hoyM} meses hoy`:""}${pp?` · parto aprox. ${fmtF(pp)}`:""}`}
+  const dh=diasHoy(pz);
+  return`Preñada${dh!=null?` · ~${dh} días hoy`:""}${pp?` · parto aprox. ${fmtF(pp)}`:""}`}
 let pModo="parto",paSel=null;
 document.querySelectorAll("[data-pmodo]").forEach(b=>b.onclick=()=>{pModo=b.dataset.pmodo;document.querySelectorAll("[data-pmodo]").forEach(x=>x.setAttribute("aria-pressed",x===b));$("#pa-palp").hidden=pModo!=="palp";$("#pa-parto").hidden=pModo!=="parto";renderPalp()});
 function hembrasPalp(){const r=$("#pa-r").value,l=$("#pa-l").value;return activos().filter(a=>a.sexo==="Hembra"&&a.rancho===r&&(l==="*"||loteKey(a)===l)&&!/lactant/i.test(loteNombre(a.lote))).sort((a,b)=>cmpN(a.numero,b.numero))}
@@ -1339,11 +1350,11 @@ function renderPalp(){
   const f=$("#pa-fecha").value||hoy(),hs=hembrasPalp(),hechas=new Set(S.palpaciones.filter(p=>p.fecha===f).map(p=>p.animal));
   const pn=hs.filter(a=>hechas.has(a.numero)),pr=pn.filter(a=>a.prenez?.resultado==="Preñada"&&a.prenez.fecha===f).length;
   $("#pa-cuenta").textContent=hs.length?`Palpadas ${pn.length} de ${hs.length} · ${plural(pr,"preñada","preñadas")} · ${plural(pn.length-pr,"vacía","vacías")}`:"No hay hembras en ese lote.";
-  $("#pa-grid").innerHTML=hs.map(a=>{const pz=a.prenez,lab=!pz?"—":pz.resultado==="Preñada"?(pz.meses!=null&&pz.meses!==""?`~${pz.meses}m`:"preñada"):"vacía";
+  $("#pa-grid").innerHTML=hs.map(a=>{const pz=a.prenez,lab=!pz?"—":pz.resultado==="Preñada"?(diasHoy(pz)!=null?`${diasHoy(pz)}d`:"preñada"):"vacía";
     return`<button type="button" class="tagbtn ${hechas.has(a.numero)?"ok":""}" data-palp="${esc(a.id)}" aria-pressed="${paSel===a.id}">${esc(a.numero)}<span style="display:block;font-size:11px;font-family:var(--f-body);font-weight:600;opacity:.8">${esc(lab)}</span></button>`}).join("");
   const px=activos().filter(a=>a.prenez?.resultado==="Preñada").map(a=>({a,f:partoProb(a.prenez)})).sort((x,y)=>cmpN(x.f||"9",y.f||"9"));
   $("#pa-prox-n").textContent=px.length?`· ${px.length}`:"";
-  $("#pa-prox").innerHTML=px.length?px.map(({a,f})=>`<button class="item" data-animal="${esc(a.id)}">${tag(a.numero)}<div class="main"><div class="t">${f?`Parto aprox. ${fmtF(f)}`:"Preñada, sin meses"}</div><div class="muted small">${esc(a.rancho)} · ${esc(loteNombre(a.lote))} · ${esc(a.categoria||"")}</div></div></button>`).join(""):'<div class="muted small">Aquí aparecen las hembras preñadas ordenadas por fecha probable de parto.</div>';
+  $("#pa-prox").innerHTML=px.length?px.map(({a,f})=>`<button class="item" data-animal="${esc(a.id)}">${tag(a.numero)}<div class="main"><div class="t">${f?`Parto aprox. ${fmtF(f)}`:"Preñada, sin días"}</div><div class="muted small">${esc(a.rancho)} · ${esc(loteNombre(a.lote))} · ${esc(a.categoria||"")}</div></div></button>`).join(""):'<div class="muted small">Aquí aparecen las hembras preñadas ordenadas por fecha probable de parto.</div>';
   if(paSel&&!S.animales.some(a=>a.id===paSel))cerrarPalp();
 }
 function cerrarPalp(){paSel=null;$("#pa-ed").classList.add("hidden")}
@@ -1351,7 +1362,7 @@ function abrirPalp(id){const a=S.animales.find(x=>x.id===id);if(!a)return;paSel=
   ed.innerHTML=`<div class="row between">${tag(a.numero,"big")}<span class="muted small">${esc(loteNombre(a.lote))}${pz?` · antes: ${esc(txtPrenez(a))}`:""}</span></div>
   <div class="seg" role="group" aria-label="Resultado" style="align-self:flex-start"><button type="button" data-pares="Preñada" aria-pressed="${pz?.resultado!=="Vacía"}">Preñada</button><button type="button" data-pares="Vacía" aria-pressed="${pz?.resultado==="Vacía"}">Vacía</button></div>
   <div class="fields">
-    <div class="field pa-pren"><label class="f" for="pa-meses">Meses de preñez (aprox.)</label><input id="pa-meses" type="number" inputmode="decimal" min="0" max="10" step="0.5" placeholder="Ej. 3"></div>
+    <div class="field pa-pren"><label class="f" for="pa-meses">Días de preñez (aprox.)</label><input id="pa-meses" type="number" inputmode="numeric" min="0" max="300" step="1" placeholder="Ej. 90"></div>
     <div class="field"><label class="f" for="pa-cat">Categoría</label><select id="pa-cat">${catOpts("Hembra",a.categoria)}</select></div>
     <div class="field"><label class="f" for="pa-nota">Nota (opcional)</label><input id="pa-nota" autocomplete="off" placeholder="Ej. revisar en 30 días"></div>
   </div>
@@ -1360,18 +1371,18 @@ function abrirPalp(id){const a=S.animales.find(x=>x.id===id);if(!a)return;paSel=
   <div class="row"><button class="pri" type="submit">Guardar y seguir</button><button type="button" class="ghost" id="pa-x">Cerrar</button></div>`;
   ed.classList.remove("hidden");ed.dataset.res=pz?.resultado==="Vacía"?"Vacía":"Preñada";
   const upd=()=>{const pre=ed.dataset.res==="Preñada";ed.querySelectorAll(".pa-pren").forEach(x=>x.hidden=!pre);ed.querySelectorAll("[data-pares]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.pares===ed.dataset.res));
-    const m=$("#pa-meses").value;$("#pa-calc").textContent=pre&&m!==""?`Parto aproximado: ${fmtF(partoProb({resultado:"Preñada",meses:+m,fecha:$("#pa-fecha").value||hoy()}))}`:""};
+    const m=$("#pa-meses").value;$("#pa-calc").textContent=pre&&m!==""?`Parto aproximado: ${fmtF(partoProb({resultado:"Preñada",dias:+m,fecha:$("#pa-fecha").value||hoy()}))}`:""};
   ed.querySelectorAll("[data-pares]").forEach(b=>b.onclick=()=>{ed.dataset.res=b.dataset.pares;upd()});$("#pa-meses").oninput=upd;$("#pa-x").onclick=cerrarPalp;upd();
   renderPalp();ed.scrollIntoView({behavior:"smooth",block:"nearest"});setTimeout(()=>{if(ed.dataset.res==="Preñada")$("#pa-meses").focus()},250)}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-palp]");if(t)abrirPalp(t.dataset.palp)});
 $("#pa-r").onchange=()=>{cerrarPalp();renderPalp()};$("#pa-l").onchange=()=>{cerrarPalp();renderPalp()};$("#pa-fecha").onchange=renderPalp;
 $("#pa-ed").onsubmit=e=>{e.preventDefault();guardar(e.submitter,async()=>{
   const a=S.animales.find(x=>x.id===paSel);if(!a)throw new Error("Ese animal ya no existe");
-  const res=$("#pa-ed").dataset.res,fecha=$("#pa-fecha").value||hoy(),mv=$("#pa-meses").value,meses=res==="Preñada"&&mv!==""?parseFloat(mv):null,nota=$("#pa-nota").value.trim();
-  const pz={resultado:res,meses,fecha};
+  const res=$("#pa-ed").dataset.res,fecha=$("#pa-fecha").value||hoy(),mv=$("#pa-meses").value,dias=res==="Preñada"&&mv!==""?Math.round(parseFloat(mv)):null,nota=$("#pa-nota").value.trim();
+  const pz={resultado:res,dias,fecha};
   await db.collection("animales").doc(a.id).update({prenez:pz,categoria:$("#pa-cat").value});
-  await db.collection("palpaciones").add({fecha,animal:a.numero,rancho:a.rancho,lote:a.lote||"",resultado:res,meses,nota,creado:Date.now()});
-  let msg=`${a.numero}: ${res==="Preñada"?`preñada${meses!=null?` ~${meses} meses`:""}`:"vacía"}`;
+  await db.collection("palpaciones").add({fecha,animal:a.numero,rancho:a.rancho,lote:a.lote||"",resultado:res,dias,nota,creado:Date.now()});
+  let msg=`${a.numero}: ${res==="Preñada"?`preñada${dias!=null?` ~${dias} días`:""}`:"vacía"}`;
   if(res==="Preñada"&&$("#pa-mover")?.checked){let l=lotesDe(a.rancho).find(l=>/pre[ñn]ad/i.test(l.nombre));
     if(!l){const ref=await db.collection("lotes").add({rancho:a.rancho,nombre:"Preñadas",creado:Date.now()});l={id:ref.id,nombre:"Preñadas"}}
     await mover([a.numero],a.rancho,l.id,fecha,"Palpación: preñada");msg+=` · pasada a ${l.nombre}`}
@@ -1704,7 +1715,7 @@ async function exportar(btn){
     hoja("Sanidad",[...S.eventos].sort(byF).map(e=>({"Fecha":e.fecha,"Tipo":e.tipo,"Producto":e.producto||"","Dosis":e.dosis||"","Precio":+e.precio||"","Rancho":e.rancho,"Lotes":(e.lotesNombres||[]).join(", "),"Cantidad":(e.animales||[]).length,"Animales":(e.animales||[]).join(", "),"Nota":e.nota||""})));
     hoja("Compras",[...S.compras].sort(byF).map(c=>({"Fecha":c.fecha,"Artículo":c.articulo,"Tipo":c.categoria||"","Cantidad":c.cantidad??"","Presentación":c.unidad||"","Tamaño":+c.tam>0?`${c.tam} ${c.tamU}`:"","Total":+c.total||0,"Rancho":c.rancho||"General","Dónde":c.proveedor||""})));
     hoja("Pesos",[...S.pesos].sort((a,b)=>cmpN(a.fecha,b.fecha)||cmpN(a.animal,b.animal)).map(p=>({"Fecha":p.fecha,"Arete":p.animal,"Kg":p.kg,"Categoría":p.categoria||"","Rancho":p.rancho||"","Lote":loteNombre(p.lote)})));
-    hoja("Palpaciones",[...S.palpaciones].sort(byF).map(p=>({"Fecha":p.fecha,"Arete":p.animal,"Resultado":p.resultado,"Meses":p.meses??"","Rancho":p.rancho||"","Nota":p.nota||""})));
+    hoja("Palpaciones",[...S.palpaciones].sort(byF).map(p=>({"Fecha":p.fecha,"Arete":p.animal,"Resultado":p.resultado,"Días":p.dias??(vacio(p.meses)?"":Math.round(p.meses*30.4)),"Rancho":p.rancho||"","Nota":p.nota||""})));
     hoja("Partos",[...S.partos].sort(byF).map(p=>({"Fecha":p.fecha,"Madre":p.madre,"Resultado":p.resultado||"","Sexo cría":p.sexo||"","Cría":/^cría /.test(p.cria||"")?"Sin número":(p.cria||""),"Rancho":p.rancho||"","Lote de la cría":p.criaLote||"","Nota":p.nota||""})));
     hoja("Leche diaria",[...S.leche].sort(byF).map(x=>({"Fecha":x.fecha,"Día":DIAS[new Date(x.fecha+"T12:00").getDay()],"Litros":+x.litros||0,"Precio por litro":precioDe(x),"Importe":Math.round(impDe(x)*100)/100,"Nota":x.nota||""})));
     const sem={},semI={};S.leche.forEach(x=>{const w=inicioSemana(x.fecha);sem[w]=(sem[w]||0)+(+x.litros||0);semI[w]=(semI[w]||0)+impDe(x)});
