@@ -888,7 +888,7 @@ function historial(a){
   S.eventos.filter(e=>(e.animales||[]).includes(n)).forEach(e=>ev.push({f:e.fecha,c:e.creado||0,t:`<span class="pill">${esc(e.tipo)}</span> ${esc(e.producto||"")}${e.diagnostico?` · <b>${esc(e.diagnostico)}</b>`:""}${e.dosis?` · ${esc(e.dosis)}`:""}`}));
   S.partos.filter(p=>p.madre===n).forEach(p=>ev.push({f:p.fecha,c:p.creado||0,t:`<span class="pill warn">Parto</span> ${esc(p.resultado||"")}${p.cria?` · cría ${esc(p.cria)}`:""}${p.sexo?` (${esc(p.sexo)})`:""}`}));
   S.pesos.filter(p=>p.animal===n).forEach(p=>ev.push({f:p.fecha,c:p.creado||0,t:`<span class="pill">Peso</span> ${fKg(p.kg)}`}));
-  S.palpaciones.filter(p=>p.animal===n).forEach(p=>ev.push({f:p.fecha,c:p.creado||0,t:`<span class="pill">Palpación</span> ${p.resultado==="Preñada"?`Preñada${!vacio(p.dias)?` · ~${p.dias} días`:p.meses?` · ~${p.meses} meses`:""}`:p.estado?`${p.codigo!=null?p.codigo+" · ":""}${esc(p.estado)}`:"Vacía"}${p.nota?` · ${esc(p.nota)}`:""}`}));
+  S.palpaciones.filter(p=>p.animal===n).forEach(p=>ev.push({f:p.fecha,c:p.creado||0,t:`<span class="pill">Palpación</span> ${p.resultado==="Preñada"?`Preñada${!vacio(p.dias)?` · ~${p.dias} días`:p.meses?` · ~${p.meses} meses`:""}`:p.estado?`${p.codigo!=null?p.codigo+" · ":""}${esc(estPz(p).estado)}`:"Vacía"}${p.nota?` · ${esc(p.nota)}`:""}`}));
   S.partos.filter(p=>p.cria===n).forEach(p=>ev.push({f:p.fecha,c:p.creado||0,t:`Nació · madre ${esc(p.madre)}`}));
   if(a.baja)ev.push({f:a.baja.fecha,c:a.baja.creado||0,t:`<span class="pill warn">Baja</span> ${esc(a.baja.motivo)}`});
   ev.sort((x,y)=>cmpN(y.f,x.f)||y.c-x.c);
@@ -1196,12 +1196,13 @@ const vacio=v=>v==null||v==="";
 function diasPz(pz){if(!pz||pz.resultado!=="Preñada")return null;if(!vacio(pz.dias))return +pz.dias;if(!vacio(pz.meses))return Math.round(+pz.meses*30.4);return null}
 function diasHoy(pz){const d=diasPz(pz);return d==null?null:d+Math.round((new Date(hoy())-new Date(pz.fecha))/864e5)}
 /* Códigos del médico en la palpación (Aranza, 29 oct 2026). 40 o más = días de preñez. */
-const PCOD=[["00","Descanso","Desc"],["0","Anestro","Anes"],["5–10","Anestro funcional","AF"],["15","Próximo celo","PC"],["16","No gestó (fase lútea)","NG"],["20","Fase lútea","FL"],["30–35","Monta reciente (fase lútea)","MR"]];
+const PCOD=[["00","Descanso","Desc"],["0","Anestro","Anes"],["5–10","Anestro funcional","AF"],["15","Próximo celo","PC"],["16","No gestó (fase lútea)","NG"],["20","Ciclando (fase lútea)","Cicl"],["30–35","Monta reciente (fase lútea)","MR"]];
 function interpPalp(v){v=String(v??"").trim();if(v==="")return null;if(v==="00")return{codigo:"00",estado:"Descanso",corto:"Desc",resultado:"Vacía"};
   if(!/^\d+$/.test(v))return{error:"Escribe solo el número"};const n=+v,c=String(n);
   if(n>=40){if(n>300)return{error:"Más de 300 días no parece correcto"};return{codigo:c,dias:n,resultado:"Preñada",estado:"Preñada",corto:`${n}d`}}
   const e=n===0?PCOD[1]:n>=5&&n<=10?PCOD[2]:n===15?PCOD[3]:n===16?PCOD[4]:n===20?PCOD[5]:n>=30&&n<=35?PCOD[6]:null;
   return e?{codigo:c,estado:e[1],corto:e[2],resultado:"Vacía"}:{codigo:c,estado:"Código fuera de la tabla",corto:c,resultado:"Vacía",raro:true}}
+const estPz=x=>{const r=x&&x.codigo!=null?interpPalp(x.codigo):null;return r&&!r.error&&!r.raro?r:{estado:x?.estado,corto:x?.corto}};
 const esOrdenaL=id=>/orde[ñn]/i.test(loteNombre(id));
 function trim(d){if(d==null)return"";if(d<40)return"menos de 40 días";if(d<=90)return"1er trimestre";if(d<=180)return"2º trimestre";if(d<=240)return"3er trimestre";return"por parir"}
 const trimC=d=>d==null?"":d<40?"<40":d<=90?"1T":d<=180?"2T":d<=240?"3T":"parto";
@@ -1213,7 +1214,7 @@ function renderAcercar(){const xs=porAcercar(),c=$("#ac-card");c.classList.toggl
   c.innerHTML=`<div class="row between"><h3>Acercar a ordeña</h3><span class="pill warn">${falta.length||xs.length}</span></div><div class="muted small">Preñadas de ${ACERCAR[0]} días o más (${ACERCAR[0]} a ${ACERCAR[1]} es cuando hay que acercarlas). Ranchos con ordeña: ${ro.length?ro.join(", "):"ninguno con lote de Ordeña"}.</div>
   <div class="tagbtns">${xs.map(x=>`<button type="button" class="tagbtn" data-animal="${esc(x.a.id)}" ${ro.includes(x.a.rancho)?'style="opacity:.55"':""}>${esc(x.a.numero)}<span style="display:block;font-size:11px;font-family:var(--f-body);font-weight:600;opacity:.8">${x.d} días</span></button>`).join("")}</div>
   <div class="muted small">${RANCHOS.map(r=>{const n=xs.filter(x=>x.a.rancho===r).length;return n?`${r}: ${n}${ro.includes(r)?" (ya tiene ordeña)":""}`:""}).filter(Boolean).join(" · ")}</div>`}
-function txtPrenez(a){const pz=a.prenez;if(!pz)return"";if(pz.resultado!=="Preñada")return`${pz.estado&&pz.estado!=="Vacía"?`${pz.codigo!=null?pz.codigo+" · ":""}${pz.estado}`:"Vacía"} (palpada ${fmtF(pz.fecha)})`;const pp=partoProb(pz);
+function txtPrenez(a){const pz=a.prenez;if(!pz)return"";if(pz.resultado!=="Preñada")return`${estPz(pz).estado&&pz.estado!=="Vacía"?`${pz.codigo!=null?pz.codigo+" · ":""}${estPz(pz).estado}`:"Vacía"} (palpada ${fmtF(pz.fecha)})`;const pp=partoProb(pz);
   const dh=diasHoy(pz);
   return`Preñada${dh!=null?` · ~${dh} días hoy (${trim(dh)})`:""}${pp?` · parto aprox. ${fmtF(pp)}`:""}`}
 let pModo="parto",paSel=null;
@@ -1225,7 +1226,7 @@ function renderPalp(){
   const f=$("#pa-fecha").value||hoy(),hs=hembrasPalp(),hechas=new Set(S.palpaciones.filter(p=>p.fecha===f).map(p=>p.animal));
   const pn=hs.filter(a=>hechas.has(a.numero)),pr=pn.filter(a=>a.prenez?.resultado==="Preñada"&&a.prenez.fecha===f).length;
   $("#pa-cuenta").textContent=hs.length?`Palpadas ${pn.length} de ${hs.length} · ${plural(pr,"preñada","preñadas")} · ${plural(pn.length-pr,"no preñada","no preñadas")}`:"No hay hembras en ese lote.";
-  $("#pa-grid").innerHTML=hs.map(a=>{const pz=a.prenez,lab=!pz?"—":pz.resultado==="Preñada"?(diasHoy(pz)!=null?`${diasHoy(pz)}d · ${trimC(diasHoy(pz))}`:"preñada"):(pz.codigo!=null?`${pz.codigo} ${pz.corto||""}`.trim():"vacía");
+  $("#pa-grid").innerHTML=hs.map(a=>{const pz=a.prenez,lab=!pz?"—":pz.resultado==="Preñada"?(diasHoy(pz)!=null?`${diasHoy(pz)}d · ${trimC(diasHoy(pz))}`:"preñada"):(pz.codigo!=null?`${pz.codigo} ${estPz(pz).corto||""}`.trim():"vacía");
     return`<button type="button" class="tagbtn ${hechas.has(a.numero)?"ok":""}" data-palp="${esc(a.id)}" aria-pressed="${paSel===a.id}">${esc(a.numero)}<span style="display:block;font-size:11px;font-family:var(--f-body);font-weight:600;opacity:.8">${esc(lab)}</span></button>`}).join("");
   const px=activos().filter(a=>a.prenez?.resultado==="Preñada").map(a=>({a,f:partoProb(a.prenez)})).sort((x,y)=>cmpN(x.f||"9",y.f||"9"));
   $("#pa-prox-n").textContent=px.length?`· ${px.length}`:"";
@@ -1599,7 +1600,7 @@ async function exportar(btn){
     hoja("Sanidad",[...S.eventos].sort(byF).map(e=>({"Fecha":e.fecha,"Tipo":e.tipo,"Producto":e.producto||"","Dosis":e.dosis||"","Precio":+e.precio||"","Rancho":e.rancho,"Lotes":(e.lotesNombres||[]).join(", "),"Cantidad":(e.animales||[]).length,"Animales":(e.animales||[]).join(", "),"Nota":e.nota||""})));
     hoja("Compras",[...S.compras].sort(byF).map(c=>({"Fecha":c.fecha,"Artículo":c.articulo,"Tipo":c.categoria||"","Cantidad":c.cantidad??"","Presentación":c.unidad||"","Tamaño":+c.tam>0?`${c.tam} ${c.tamU}`:"","Total":+c.total||0,"Rancho":c.rancho||"General","Dónde":c.proveedor||""})));
     hoja("Pesos",[...S.pesos].sort((a,b)=>cmpN(a.fecha,b.fecha)||cmpN(a.animal,b.animal)).map(p=>({"Fecha":p.fecha,"Arete":p.animal,"Kg":p.kg,"Categoría":p.categoria||"","Rancho":p.rancho||"","Lote":loteNombre(p.lote)})));
-    hoja("Palpaciones",[...S.palpaciones].sort(byF).map(p=>({"Fecha":p.fecha,"Arete":p.animal,"Resultado":p.resultado,"Código":p.codigo??"","Estado":p.estado||"","Días":p.dias??(vacio(p.meses)?"":Math.round(p.meses*30.4)),"Rancho":p.rancho||"","Nota":p.nota||""})));
+    hoja("Palpaciones",[...S.palpaciones].sort(byF).map(p=>({"Fecha":p.fecha,"Arete":p.animal,"Resultado":p.resultado,"Código":p.codigo??"","Estado":estPz(p).estado||"","Días":p.dias??(vacio(p.meses)?"":Math.round(p.meses*30.4)),"Rancho":p.rancho||"","Nota":p.nota||""})));
     hoja("Partos",[...S.partos].sort(byF).map(p=>({"Fecha":p.fecha,"Madre":p.madre,"Resultado":p.resultado||"","Sexo cría":p.sexo||"","Cría":/^cría /.test(p.cria||"")?"Sin número":(p.cria||""),"Rancho":p.rancho||"","Lote de la cría":p.criaLote||"","Nota":p.nota||""})));
     hoja("Leche diaria",[...S.leche].sort(byF).map(x=>({"Fecha":x.fecha,"Día":DIAS[new Date(x.fecha+"T12:00").getDay()],"Litros":+x.litros||0,"Precio por litro":precioDe(x),"Importe":Math.round(impDe(x)*100)/100,"Nota":x.nota||""})));
     const sem={},semI={};S.leche.forEach(x=>{const w=inicioSemana(x.fecha);sem[w]=(sem[w]||0)+(+x.litros||0);semI[w]=(semI[w]||0)+impDe(x)});
