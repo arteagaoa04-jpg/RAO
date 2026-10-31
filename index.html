@@ -291,6 +291,7 @@ button.rcard:hover{border-color:var(--accent)}
         <div class="field"><label class="f" for="a-lote">Lote</label><select id="a-lote"></select></div>
         <div class="field"><label class="f" for="a-cat">Categoría</label><select id="a-cat"><option value="*">Todas</option></select></div>
         <div class="field"><label class="f" for="a-estado">Estado</label><select id="a-estado"><option>Activo</option><option>Vendido</option><option>Muerto</option><option value="">Todos</option></select></div>
+        <div class="field"><label class="f" for="a-foto">Foto</label><select id="a-foto"><option value="">Con y sin foto</option><option value="no">Sin foto</option><option value="si">Con foto</option></select></div>
       </div>
       <div class="muted small" id="a-cuenta"></div>
       <div class="list" id="a-lista"></div>
@@ -966,10 +967,10 @@ function renderAnimales(){
   $("#a-lote").disabled=!$("#a-rancho").value;
   keep($("#a-lote"),$("#a-rancho").value?loteOpts($("#a-rancho").value,{todos:true}):'<option value="*">Todos los lotes</option>');
   const ar=$("#alta-rancho");if(!ar.options.length)ar.innerHTML=ranchoOpts(false);keep($("#alta-lote"),loteOpts(ar.value));
-  const q=$("#a-q").value.trim().toLowerCase(),fr=$("#a-rancho").value,fl=$("#a-lote").value,fe=$("#a-estado").value,fc=$("#a-cat").value;
-  const ls=S.animales.filter(a=>(fc==="*"||(a.categoria||"")===fc)&&(!fe||estadoDe(a)===fe)&&(!fr||a.rancho===fr)&&(!fr||fl==="*"||(a.lote||"")===fl)&&(!q||a.numero.toLowerCase().includes(q))).sort((a,b)=>cmpN(a.numero,b.numero));
-  const nf=[fr,fc!=="*"?fc:"",fe!=="Activo"?"x":""].filter(Boolean).length;$("#a-filt-btn").textContent=nf?`Filtros (${nf})`:"Filtros";
-  $("#a-cuenta").textContent=plural(ls.length,"animal","animales")+(ls.length?` · ${resumenCats(ls)}`:"");
+  const q=$("#a-q").value.trim().toLowerCase(),fr=$("#a-rancho").value,fl=$("#a-lote").value,fe=$("#a-estado").value,fc=$("#a-cat").value,ff=$("#a-foto").value;
+  const ls=S.animales.filter(a=>(fc==="*"||(a.categoria||"")===fc)&&(!fe||estadoDe(a)===fe)&&(!fr||a.rancho===fr)&&(!fr||fl==="*"||(a.lote||"")===fl)&&(!q||a.numero.toLowerCase().includes(q))&&(!ff||(ff==="si")===!!a.foto)).sort((a,b)=>cmpN(a.numero,b.numero));
+  const nf=[fr,fc!=="*"?fc:"",fe!=="Activo"?"x":"",ff].filter(Boolean).length;$("#a-filt-btn").textContent=nf?`Filtros (${nf})`:"Filtros";
+  $("#a-cuenta").textContent=plural(ls.length,"animal","animales")+(ls.length?` · ${resumenCats(ls)} · ${ls.filter(a=>a.foto).length} con foto`:"");
   const itemA=a=>`<button class="item" data-animal="${esc(a.id)}">${tag(a.numero)}<div class="main"><div class="t">${esc(a.categoria||a.sexo||"")}${a.raza?" · "+esc(a.raza):""}${a.nacimiento?` <span class="muted small">· ${edad(a.nacimiento)}</span>`:""}${a.sexo==="Hembra"&&partosDe(a.numero).n?` <span class="muted small">· ${plural(partosDe(a.numero).n,"parto","partos")}</span>`:""}</div><div class="muted small">${esc(a.rancho)} · ${esc(loteNombre(a.lote))}</div></div>${a.provisional?'<span class="pill">Sin número</span>':""}${estadoDe(a)!=="Activo"?`<span class="pill off">${esc(estadoDe(a))}</span>`:""}</button>`;
   const agrupado=!q&&!fr&&fc==="*"&&fe==="Activo";
   if(agrupado&&ls.length){
@@ -990,7 +991,7 @@ $("#alta-sexo").onchange=()=>{$("#alta-cat").innerHTML=catOpts($("#alta-sexo").v
 $("#alta-cancel").onclick=()=>irA("animales");
 $("#alta-rancho").onchange=()=>keep($("#alta-lote"),loteOpts($("#alta-rancho").value));
 $("#a-cat").innerHTML='<option value="*">Todas</option>'+catOpts(null,null);
-["#a-q","#a-estado","#a-lote","#a-cat"].forEach(s=>$(s).addEventListener("input",renderAnimales));
+["#a-q","#a-estado","#a-lote","#a-cat","#a-foto"].forEach(s=>$(s).addEventListener("input",renderAnimales));
 $("#a-rancho").onchange=()=>{$("#a-lote").value="*";renderAnimales()};
 $("#f-alta").onsubmit=e=>{e.preventDefault();const btn=e.submitter;guardar(btn,async()=>{
   const nums=parseNums($("#alta-nums").value);if(!nums.length)throw new Error("Escribe al menos un número");
@@ -1036,6 +1037,8 @@ function renderFicha(full){
   if(!a){body.innerHTML=`<p>Este animal ya no existe.</p><button onclick="dlg.close()">Cerrar</button>`;return}
   if(!full){const h=$("#fi-hist");if(h)h.innerHTML=historial(a);const u=$("#fi-ubic");if(u)u.textContent=`${a.rancho} · ${loteNombre(a.lote)}`;return}
   body.innerHTML=`<div class="row between">${tag(a.numero,"big")}<button class="ghost sm" onclick="dlg.close()">Cerrar</button></div>
+  <div class="col" id="fi-fotow" style="display:flex;flex-direction:column;gap:6px">${a.foto?`<img class="foto" src="${fotoSrc(a.foto)}" data-foto="${esc(a.foto)}" alt="Foto del animal ${esc(a.numero)}">`:""}
+    <div class="row"><button type="button" class="sm" id="fi-foto-btn">${a.foto?"Cambiar foto":"Agregar foto"}</button><input type="file" id="fi-foto" accept="image/*" hidden><span class="muted small" id="fi-foto-info">${a.foto&&a.fotoFecha?`Foto del ${fmtF(a.fotoFecha)}`:a.foto?"":"Sin foto todavía"}</span></div></div>
   ${a.provisional?`<div class="baja" style="border-color:var(--accent);background:var(--accent-soft)"><b>Esta cría aún no tiene número</b><div class="row" style="flex-wrap:nowrap"><input id="fi-num" placeholder="Número de arete" autocomplete="off" aria-label="Número de arete"><button class="pri" id="fi-asig">Asignar</button></div></div>`:""}
   <div><div class="lbl">Ubicación</div><div style="font-weight:600" id="fi-ubic">${esc(a.rancho)} · ${esc(loteNombre(a.lote))}</div>${a.sexo==="Macho"&&!esToro(a)?(ps=>ps.length?`<div class="muted small">Último peso ${fKg(ps[ps.length-1].kg)} (${fmtF(ps[ps.length-1].fecha)})${gdp(ps[ps.length-2],ps[ps.length-1])!=null?` · ${fG(gdp(ps[ps.length-2],ps[ps.length-1]))}`:""}</div>`:'<div class="muted small">Sin pesajes</div>')(pesosDe(a.numero)):""}${a.sexo==="Hembra"?`<div class="muted small">${txtPartos(partosDe(a.numero))}</div>${txtPrenez(a)?`<div class="small"><span class="pill ${a.prenez?.resultado==="Preñada"?"ok":"off"}">${txtPrenez(a)}</span></div>`:""}`:""}</div>
   <form class="fields" id="fi-form">
@@ -1076,6 +1079,10 @@ function renderFicha(full){
     await db.collection("animales").doc(a.id).update({estado:motivo,baja:{motivo,fecha:$("#bj-fecha").value||hoy(),nota:$("#bj-nota").value.trim(),foto,rancho:a.rancho,loteNombre:loteNombre(a.lote),creado:Date.now()}});
     renderFicha(true);toast(`Animal ${a.numero} dado de baja`)});
   if($("#fi-reac"))$("#fi-reac").onclick=e=>dosPasos(e.target,()=>guardar(e.target,async()=>{await db.collection("animales").doc(a.id).update({estado:"Activo",baja:null});renderFicha(true);toast(`Animal ${a.numero} reactivado`)}));
+  $("#fi-foto-btn").onclick=()=>$("#fi-foto").click();
+  $("#fi-foto").onchange=e=>{const f=e.target.files[0];if(!f)return;guardar($("#fi-foto-btn"),async()=>{if(!assets)throw new Error("No se pueden subir fotos ahora");$("#fi-foto-info").textContent="Subiendo foto…";
+    let id;try{id=(await assets.upload(await comprimir(f))).id}catch(err){$("#fi-foto-info").textContent="";throw new Error(err?.code==="too_large"?"La foto es muy pesada":"No se pudo guardar la foto")}
+    await db.collection("animales").doc(a.id).update({foto:id,fotoFecha:hoy()});a.foto=id;a.fotoFecha=hoy();renderFicha(true);toast(`Foto del ${a.numero} guardada`)})};
   if($("#fi-asig"))$("#fi-asig").onclick=e=>guardar(e.target,async()=>{const n=$("#fi-num").value.trim();if(!n)throw new Error("Escribe el número");if(animal(n))throw new Error(`El número ${n} ya existe`);await asignarNumero(a,n);renderFicha(true);toast(`Cría registrada con el número ${n}`)});
   $("#fi-del").onclick=e=>dosPasos(e.target,()=>guardar(e.target,async()=>{await db.collection("animales").doc(a.id).delete();$("#dlg").close();toast(`Animal ${a.numero} eliminado`)}));
 }
