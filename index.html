@@ -46,6 +46,10 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surf
 nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 9px;color:var(--muted);text-decoration:none;font-size:11px;font-weight:600;flex:1 0 58px;min-width:58px}
 nav.tabs a svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
 nav.tabs a[aria-current="page"]{color:var(--accent)}
+.ch-tip{position:fixed;z-index:60;pointer-events:none;background:var(--fg);color:var(--bg);font-size:13px;font-weight:600;padding:6px 9px;border-radius:8px;max-width:220px;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.ch svg{display:block;width:100%;height:auto;overflow:visible}.ch svg{max-height:260px}.ch .ax{font:500 11px var(--f-body);fill:var(--muted)}.ch .gl{stroke:var(--line);stroke-width:1}.ch .avg{stroke:var(--fg);stroke-width:1.5;stroke-dasharray:4 4;opacity:.6}.ch .lbl-v{font:600 11px var(--f-body);fill:var(--fg)}
+.ch rect[data-tip]{cursor:pointer}.ch rect.hit{fill:transparent}
+.hb{display:grid;grid-template-columns:minmax(110px,40%) 1fr auto;gap:6px 10px;align-items:center;font-size:14px}.hb .bar{height:14px;border-radius:0 4px 4px 0;min-width:2px}.hb .n{font-variant-numeric:tabular-nums;font-weight:600;text-align:right;min-width:24px}.hb .sec{grid-column:1/-1;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
 #fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:21;width:56px;height:56px;border-radius:50%;background:var(--accent);color:var(--accent-fg);border:0;font-size:32px;line-height:1;font-weight:500;box-shadow:0 4px 14px rgba(0,0,0,.5);padding:0}
 .subnav{margin:-4px 0 12px;overflow-x:auto;scrollbar-width:none}.subnav .seg{display:flex;width:100%}.subnav .seg a{flex:1;text-align:center;min-height:36px;padding:8px 10px;white-space:nowrap;color:var(--muted);text-decoration:none;font-weight:600;font-size:14px}.subnav .seg a[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
 .mas-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.mas-item{display:flex;flex-direction:column;gap:4px;color:var(--fg);text-decoration:none}.mas-item svg{width:28px;height:28px;stroke:var(--accent);fill:none;stroke-width:1.8;margin-bottom:4px}.mas-item b{font-family:var(--f-cond);font-size:20px}
@@ -359,8 +363,13 @@ button.rcard:hover{border-color:var(--accent)}
 
   <!-- PARTOS -->
   <section class="view" id="v-partos" hidden>
-    <h2>Pariciones</h2>
-    <div class="seg" role="group" aria-label="Sección" style="align-self:flex-start"><button type="button" data-pmodo="parto" aria-pressed="true">Registrar parto</button><button type="button" data-pmodo="palp" aria-pressed="false">Palpación</button></div>
+    <h2>Reproducción</h2>
+    <div class="seg" role="group" aria-label="Sección" style="align-self:flex-start"><button type="button" data-pmodo="res" aria-pressed="true">Resumen</button><button type="button" data-pmodo="parto" aria-pressed="false">Registrar parto</button><button type="button" data-pmodo="palp" aria-pressed="false">Palpación</button></div>
+    <div id="pa-res" style="display:flex;flex-direction:column;gap:16px">
+    <div class="card"><div class="row between"><h3>Cómo está el hato</h3><select id="rp-r" aria-label="Rancho" style="width:auto"></select></div>
+      <div class="muted small" id="rp-n"></div><div class="hb" id="rp-hb"></div></div>
+    <div class="card"><h3>Partos esperados por mes</h3><div class="ch" id="rp-ch"></div><div class="muted small" id="rp-ch-n"></div></div>
+    </div>
     <div id="pa-palp" hidden style="display:flex;flex-direction:column;gap:16px">
       <div class="card">
         <div class="fields">
@@ -375,7 +384,7 @@ button.rcard:hover{border-color:var(--accent)}
       <form class="card hidden" id="pa-ed"></form>
       <div class="card"><details><summary><b>Próximos partos</b> <span class="muted small" id="pa-prox-n"></span></summary><div class="list" id="pa-prox" style="margin-top:8px"></div></details></div>
     </div>
-    <div id="pa-parto" style="display:flex;flex-direction:column;gap:16px">
+    <div id="pa-parto" hidden style="display:flex;flex-direction:column;gap:16px">
     <form class="card" id="f-par">
       <div class="fields">
         <div class="field"><label class="f" for="p-madre">Número de la madre</label><input id="p-madre" list="dl-hembras" autocomplete="off" required></div>
@@ -499,6 +508,8 @@ button.rcard:hover{border-color:var(--accent)}
       </div>
       <div class="row"><button class="pri" type="submit">Guardar entrega</button><span class="muted small">Si hay dos entregas el mismo día, regístralas por separado y se suman.</span></div>
     </form>
+    <div class="card"><h3 id="lc-ch-t">Litros por semana</h3><div class="row" style="gap:6px"><div class="seg" role="group" aria-label="Medida"><button type="button" data-lcm="l" aria-pressed="true">Litros</button><button type="button" data-lcm="p" aria-pressed="false">Pesos</button></div><div class="seg" role="group" aria-label="Periodo"><button type="button" data-lcp="s" aria-pressed="true">Semanas</button><button type="button" data-lcp="m" aria-pressed="false">Meses</button></div></div>
+      <div class="ch" id="lc-ch"></div><div class="muted small" id="lc-ch-n"></div></div>
     <div class="card"><h3>Totales por semana</h3><div id="lc-semanas"></div></div>
   </section>
 
@@ -1391,8 +1402,8 @@ function renderAcercar(){const xs=porAcercar(),c=$("#ac-card");c.classList.toggl
 function txtPrenez(a){const pz=a.prenez;if(!pz)return"";if(pz.resultado!=="Preñada")return`${estPz(pz).estado&&pz.estado!=="Vacía"?`${pz.codigo!=null?pz.codigo+" · ":""}${estPz(pz).estado}`:"Vacía"} (palpada ${fmtF(pz.fecha)})`;const pp=partoProb(pz);
   const dh=diasHoy(pz);
   return`Preñada${dh!=null?` · ~${dh} días hoy (${trim(dh)})`:""}${pp?` · parto aprox. ${fmtF(pp)}`:""}`}
-let pModo="parto",paSel=null;
-document.querySelectorAll("[data-pmodo]").forEach(b=>b.onclick=()=>{pModo=b.dataset.pmodo;document.querySelectorAll("[data-pmodo]").forEach(x=>x.setAttribute("aria-pressed",x===b));$("#pa-palp").hidden=pModo!=="palp";$("#pa-parto").hidden=pModo!=="parto";renderPalp()});
+let pModo="res",paSel=null;
+document.querySelectorAll("[data-pmodo]").forEach(b=>b.onclick=()=>{pModo=b.dataset.pmodo;document.querySelectorAll("[data-pmodo]").forEach(x=>x.setAttribute("aria-pressed",x===b));$("#pa-palp").hidden=pModo!=="palp";$("#pa-parto").hidden=pModo!=="parto";$("#pa-res").hidden=pModo!=="res";renderPalp()});
 function hembrasPalp(){const r=$("#pa-r").value,l=$("#pa-l").value;return activos().filter(a=>a.sexo==="Hembra"&&a.rancho===r&&(l==="*"||loteKey(a)===l)&&!/lactant/i.test(loteNombre(a.lote))).sort((a,b)=>cmpN(a.numero,b.numero))}
 function renderPalp(){
   if(!$("#pa-r").options.length){$("#pa-r").innerHTML=ranchoOpts(false)}
@@ -1461,7 +1472,7 @@ function renderPrecios(){const g={};S.eventos.filter(e=>+e.precio>0&&e.producto)
     return`<div class="item"><div class="main"><div class="t">${esc(n)}</div><div class="muted small">${xs.slice(0,4).map(e=>`${fmt$(+e.precio)} ${fCorta(e.fecha)}`).join(" · ")}</div></div><div style="text-align:right"><b>${fmt$(u)}</b>${d!=null?`<div class="small ${d>0?"down":"up"}">${d>0?"subió":"bajó"} ${fmt$(Math.abs(d))}</div>`:""}</div></div>`}).join(""):'<div class="muted small">Cuando registres un medicamento con precio, aquí verás lo que te ha costado cada vez.</div>'}
 
 /* ---------- PARTOS ---------- */
-function renderPartos(){
+function renderPartos(){renderRepro();
   if(pModo==="palp"&&!document.activeElement?.closest?.("#pa-ed"))renderPalp();
   if(!$("#p-fr").options.length)$("#p-fr").innerHTML=ranchoOpts(true);
   $("#dl-hembras").innerHTML=activos().filter(a=>a.sexo==="Hembra").sort((a,b)=>cmpN(a.numero,b.numero)).map(a=>`<option value="${esc(a.numero)}">${esc(a.rancho)}</option>`).join("");
@@ -1542,7 +1553,52 @@ const precioDe=x=>x.precio!=null&&+x.precio>0?+x.precio:precioLeche();
 const impDe=x=>(+x.litros||0)*precioDe(x);
 const fmt$=n=>n.toLocaleString("es-MX",{style:"currency",currency:"MXN"});
 const fmt$0=n=>n.toLocaleString("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0});
-function renderLeche(){
+/* ---------- gráficas ---------- */
+let chTip=null;
+function tipShow(t,x,y){if(!chTip){chTip=document.createElement("div");chTip.className="ch-tip";document.body.appendChild(chTip)}chTip.textContent=t;chTip.hidden=false;const w=chTip.offsetWidth;chTip.style.left=Math.max(8,Math.min(innerWidth-w-8,x-w/2))+"px";chTip.style.top=Math.max(8,y-44)+"px"}
+const tipHide=()=>{if(chTip)chTip.hidden=true};
+document.addEventListener("pointerover",e=>{const t=e.target.closest?.("[data-tip]");if(t){const r=t.getBoundingClientRect();tipShow(t.dataset.tip,r.left+r.width/2,r.top)}});
+document.addEventListener("pointerout",e=>{if(e.target.closest?.("[data-tip]"))tipHide()});
+addEventListener("scroll",tipHide,{passive:true});
+/* barras verticales: ds=[{k,lbl,v,tip,tenue}] */
+function barras(el,ds,{fmtV=String,prom=false,alto=190,color="var(--accent)",todas=false}={}){if(!ds.length||!ds.some(d=>d.v>0)){el.innerHTML='<div class="muted small" style="padding:20px 0">Todavía no hay datos para esta gráfica.</div>';return}
+  const W=360,H=alto,pl=4,pr=4,pt=20,pb=22,max=Math.max(...ds.map(d=>d.v))*1.08,n=ds.length,bw=(W-pl-pr)/n,y=v=>pt+(H-pt-pb)*(1-v/max);
+  const conV=ds.filter(d=>d.v>0),avg=conV.reduce((a,d)=>a+d.v,0)/(conV.length||1),cada=Math.ceil(n/6);
+  let g=`<line class="gl" x1="${pl}" x2="${W-pr}" y1="${H-pb}" y2="${H-pb}"/>`;
+  if(prom&&conV.length>1)g+=`<line class="avg" x1="${pl}" x2="${W-pr}" y1="${y(avg)}" y2="${y(avg)}"/><text class="ax" x="${pl}" y="${pt-6}">- - Promedio ${esc(fmtV(avg))}</text>`;
+  ds.forEach((d,i)=>{const x=pl+i*bw,w=Math.max(3,bw-4),h=Math.max(0,H-pb-y(d.v)),yy=H-pb-h,r=Math.min(4,w/2,h);
+    if(d.v>0)g+=`<path d="M${x+2},${H-pb}V${yy+r}q0,-${r} ${r},-${r}h${w-2*r}q${r},0 ${r},${r}V${H-pb}z" fill="${color}" opacity="${d.tenue?.45:1}"/>`;
+    g+=`<rect class="hit" x="${x}" y="${pt}" width="${bw}" height="${H-pt-pb}" data-tip="${esc(d.tip)}"/>`;
+    if(i%cada===(n-1)%cada)g+=`<text class="ax" x="${x+bw/2}" y="${H-8}" text-anchor="middle">${esc(d.lbl)}</text>`});
+  if(todas)ds.forEach((d,i)=>{if(d.v>0)g+=`<text class="lbl-v" x="${pl+i*bw+bw/2}" y="${y(d.v)-5}" text-anchor="middle">${esc(String(d.v))}</text>`});
+  const ult=todas?null:[...ds].reverse().find(d=>d.v>0);if(ult){const i=ds.indexOf(ult);g+=`<text class="lbl-v" x="${pl+i*bw+bw/2}" y="${y(ult.v)-5}" text-anchor="middle">${esc(fmtV(ult.v))}</text>`}
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(ds.map(d=>d.tip).join("; "))}">${g}</svg>`}
+const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+let lcM="l",lcP="s";
+document.addEventListener("click",e=>{const b=e.target.closest("[data-lcm],[data-lcp]");if(!b)return;if(b.dataset.lcm)lcM=b.dataset.lcm;if(b.dataset.lcp)lcP=b.dataset.lcp;
+  document.querySelectorAll("[data-lcm]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.lcm===lcM));document.querySelectorAll("[data-lcp]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.lcp===lcP));renderLecheCh()});
+function renderLecheCh(){const val=x=>lcM==="l"?(+x.litros||0):impDe(x),fv=lcM==="l"?fmtL:fmt$0,acc={};
+  const key=f=>lcP==="s"?inicioSemana(f):f.slice(0,7);S.leche.forEach(x=>{const k=key(x.fecha);acc[k]=(acc[k]||0)+val(x)});
+  const h=hoy(),ds=[];
+  if(lcP==="s"){const w0=inicioSemana(h);for(let i=11;i>=0;i--){const w=addDias(w0,-7*i);ds.push({k:w,lbl:fCorta(w),v:acc[w]||0,tenue:i===0,tip:`Semana del ${fCorta(w)} al ${fCorta(addDias(w,6))}: ${fv(acc[w]||0)}${i===0?" (en curso)":""}`})}}
+  else{const d=new Date(h+"T12:00");for(let i=11;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1),k=`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}`;ds.push({k,lbl:MES[x.getMonth()],v:acc[k]||0,tenue:i===0,tip:`${MES[x.getMonth()]} ${x.getFullYear()}: ${fv(acc[k]||0)}${i===0?" (en curso)":""}`})}}
+  $("#lc-ch-t").textContent=`${lcM==="l"?"Litros":"Pesos"} por ${lcP==="s"?"semana":"mes"}`;
+  barras($("#lc-ch"),ds,{fmtV:fv,prom:true,color:"var(--milk)"});$("#lc-ch-n").textContent=`Últimas 12 ${lcP==="s"?"semanas":"meses"}. La barra clara es la ${lcP==="s"?"semana":"mes"} en curso. Toca una barra para ver el total.`}
+function renderRepro(){const sel=$("#rp-r");if(!sel.options.length)sel.innerHTML='<option value="">Todos los ranchos</option>'+RANCHOS.map(r=>`<option>${r}</option>`).join("");
+  const r=sel.value,hs=activos().filter(a=>a.sexo==="Hembra"&&(!r||a.rancho===r)&&(a.categoria==="Vaca"||a.categoria==="Novillona"||a.prenez));
+  const pre=[["1er trimestre",0,"40 a 90 días"],["2º trimestre",0,"91 a 180 días"],["3er trimestre",0,"181 a 240 días"],["Más de 240 días",0,"por parir"],["Sin días",0,"preñada sin días anotados"]],no={},sin=[0];
+  hs.forEach(a=>{const pz=a.prenez;if(!pz){sin[0]++;return}if(pz.resultado==="Preñada"){const d=diasHoy(pz);pre[d==null?4:d<=90?0:d<=180?1:d<=240?2:3][1]++;return}const e=estPz(pz).estado||"Vacía";no[e]=(no[e]||0)+1});
+  const orden=PCOD.map(c=>c[1]),noL=Object.entries(no).sort((a,b)=>(orden.indexOf(a[0])+99)%99-(orden.indexOf(b[0])+99)%99);
+  const tp=pre.reduce((a,x)=>a+x[1],0),max=Math.max(1,...pre.map(x=>x[1]),...noL.map(x=>x[1]),sin[0]);
+  const row=(l,n,c,t)=>`<span>${esc(l)}</span><div class="bar" style="width:${n/max*100}%;background:${c}" data-tip="${esc(l)}${t?` (${esc(t)})`:""}: ${n}"></div><span class="n">${n}</span>`;
+  $("#rp-n").textContent=hs.length?`${plural(hs.length,"vaca o novillona","vacas y novillonas")} · ${tp} preñadas (${Math.round(tp/hs.length*100)}%)`:"No hay vacas ni novillonas aquí.";
+  $("#rp-hb").innerHTML=hs.length?`<div class="sec">Preñadas</div>${pre.filter((x,i)=>i<4||x[1]).map(x=>row(x[0],x[1],"var(--accent)",x[2])).join("")}${noL.length?`<div class="sec">No preñadas (última palpación)</div>${noL.map(x=>row(x[0],x[1],"var(--muted)")).join("")}`:""}${sin[0]?`<div class="sec">Sin palpar</div>${row("Sin palpación",sin[0],"var(--line)")}`:""}`:"";
+  const h=hoy(),d=new Date(h+"T12:00"),acc={};hs.forEach(a=>{const f=partoProb(a.prenez);if(f)acc[f.slice(0,7)]=(acc[f.slice(0,7)]||0)+1});
+  const ds=[];for(let i=0;i<10;i++){const x=new Date(d.getFullYear(),d.getMonth()+i,1),k=`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}`;ds.push({k,lbl:MES[x.getMonth()],v:acc[k]||0,tip:`${MES[x.getMonth()]} ${x.getFullYear()}: ${plural(acc[k]||0,"parto","partos")}`})}
+  const tard=Object.entries(acc).filter(([k])=>k<h.slice(0,7)).reduce((a,[,v])=>a+v,0);
+  barras($("#rp-ch"),ds,{fmtV:v=>plural(v,"parto","partos"),alto:150,todas:true});$("#rp-ch-n").textContent=`Según los días de preñez de la última palpación.${tard?` ${plural(tard,"hembra ya pasó","hembras ya pasaron")} de su fecha aproximada.`:""}`}
+document.getElementById("rp-r").onchange=()=>renderRepro();
+function renderLeche(){renderLecheCh();
   const porDia={};S.leche.forEach(x=>{porDia[x.fecha]=(porDia[x.fecha]||0)+(+x.litros||0)});
   const semanas={},imp={};S.leche.forEach(x=>{const w=inicioSemana(x.fecha);semanas[w]=(semanas[w]||0)+(+x.litros||0);imp[w]=(imp[w]||0)+impDe(x)});
   const hoyS=inicioSemana(hoy()),ant=addDias(hoyS,-7);
