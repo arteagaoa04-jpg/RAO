@@ -336,6 +336,7 @@ button.rcard:hover{border-color:var(--accent)}
         <div class="field"><label class="f" for="s-fecha">Fecha</label><input type="date" id="s-fecha"></div>
         <div class="field s-lote"><label class="f" for="s-rancho">Rancho</label><select id="s-rancho"></select></div>
         <div class="field full s-lote"><span class="f lbl">Lotes</span><div class="lotechecks" id="s-lotes"></div></div>
+        <div class="field full s-lote"><label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="s-alg"> Solo algunos aretes de esos lotes</label><div id="s-sel-w" hidden><div class="row" style="gap:6px;margin:6px 0"><button type="button" class="sm ghost" id="s-sel-all">Todos</button><button type="button" class="sm ghost" id="s-sel-none">Ninguno</button><span class="muted small">Toca los aretes a los que se les aplicó.</span></div><div class="tagbtns" id="s-sel"></div></div></div>
         <div class="field full"><label class="f" for="s-nota">Nota (opcional)</label><input id="s-nota" autocomplete="off"></div>
       </div>
       <div class="row"><button class="pri" type="submit" id="s-go">Registrar</button><span class="muted small" id="s-cuenta"></span></div>
@@ -1052,7 +1053,15 @@ document.querySelectorAll("[data-smodo]").forEach(b=>b.onclick=()=>{sModo=b.data
   if(sModo==="ind"&&$("#s-tipo").value!=="Tratamiento")$("#s-tipo").value="Tratamiento";if(sModo==="lote"&&$("#s-tipo").value==="Tratamiento")$("#s-tipo").value="Vacunación";
   $("#s-otro-w").classList.toggle("hidden",$("#s-tipo").value!=="Otro");contarSan()});
 $("#s-nums").addEventListener("input",()=>contarSan());
-function animalesSan(){if(sModo==="ind")return indSan().ok;const r=$("#s-rancho").value,ls=lotesSan();return activos().filter(a=>a.rancho===r&&ls.includes(a.lote&&S.lotes.some(l=>l.id===a.lote)?a.lote:""))}
+const sSel=new Set();
+function enLotesSan(){const r=$("#s-rancho").value,ls=lotesSan();return activos().filter(a=>a.rancho===r&&ls.includes(a.lote&&S.lotes.some(l=>l.id===a.lote)?a.lote:"")).sort((a,b)=>cmpN(a.numero,b.numero))}
+function animalesSan(){if(sModo==="ind")return indSan().ok;const xs=enLotesSan();return $("#s-alg").checked?xs.filter(a=>sSel.has(a.id)):xs}
+function renderSanSel(){const on=$("#s-alg").checked;$("#s-sel-w").hidden=!on;if(!on)return;const xs=enLotesSan(),ids=new Set(xs.map(a=>a.id));[...sSel].forEach(i=>{if(!ids.has(i))sSel.delete(i)});
+  $("#s-sel").innerHTML=xs.length?xs.map(a=>`<button type="button" class="tagbtn ${sSel.has(a.id)?"ok":""}" data-ssel="${esc(a.id)}" aria-pressed="${sSel.has(a.id)}">${esc(a.numero)}</button>`).join(""):'<span class="muted small">Marca primero uno o más lotes.</span>'}
+$("#s-alg").onchange=()=>{renderSanSel();contarSan()};
+$("#s-sel").addEventListener("click",e=>{const b=e.target.closest("[data-ssel]");if(!b)return;const id=b.dataset.ssel;sSel.has(id)?sSel.delete(id):sSel.add(id);renderSanSel();contarSan()});
+$("#s-sel-all").onclick=()=>{enLotesSan().forEach(a=>sSel.add(a.id));renderSanSel();contarSan()};
+$("#s-sel-none").onclick=()=>{sSel.clear();renderSanSel();contarSan()};
 function renderSanidad(){
   llenarActivos();
   if(!$("#s-rancho").options.length){$("#s-rancho").innerHTML=ranchoOpts(false);$("#s-tipo").innerHTML=TIPOS.map(t=>`<option>${t}</option>`).join("");$("#s-fr").innerHTML=ranchoOpts(true);$("#s-ft").innerHTML='<option value="">Todos los tipos</option>'+TIPOS.map(t=>`<option>${t}</option>`).join("")}
@@ -1072,7 +1081,7 @@ function renderSanidad(){
 function llenarActivos(){$("#dl-activos").innerHTML=activos().filter(a=>!a.provisional).sort((a,b)=>cmpN(a.numero,b.numero)).map(a=>`<option value="${esc(a.numero)}">${esc(a.rancho)} · ${esc(loteNombre(a.lote))}</option>`).join("")}
 function contarSan(){const n=animalesSan().length;
   if(sModo==="ind"){const{ok,no}=indSan();$("#s-nums-info").textContent=ok.map(a=>`${a.numero}: ${a.rancho} / ${loteNombre(a.lote)}`).join(" · ")+(no.length?`${ok.length?" · ":""}No encontrados: ${no.join(", ")}`:"");$("#s-cuenta").textContent=n?`Se registrará a ${plural(n,"animal","animales")}`:"Escribe el arete";$("#s-go").disabled=!n;return}
-  $("#s-cuenta").textContent=lotesSan().length?`Se registrará a ${plural(n,"animal","animales")}`:"Marca uno o más lotes";$("#s-go").disabled=!n}
+  renderSanSel();$("#s-cuenta").textContent=!lotesSan().length?"Marca uno o más lotes":$("#s-alg").checked&&!n?"Toca los aretes":`Se registrará a ${plural(n,"animal","animales")}${$("#s-alg").checked?` de ${enLotesSan().length}`:""}`;$("#s-go").disabled=!n}
 $("#s-rancho").onchange=renderSanidad;$("#s-lotes").addEventListener("change",contarSan);
 $("#s-fr").onchange=renderSanidad;$("#s-ft").onchange=renderSanidad;
 $("#s-tipo").onchange=()=>$("#s-otro-w").classList.toggle("hidden",$("#s-tipo").value!=="Otro");
@@ -1081,7 +1090,7 @@ $("#f-san").onsubmit=e=>{e.preventDefault();guardar(e.submitter,async()=>{
   let tipo=$("#s-tipo").value;if(tipo==="Otro"&&$("#s-otro").value.trim())tipo=$("#s-otro").value.trim();
   const ind=sModo==="ind",ls=ind?[...new Set(an.map(a=>loteKey(a)))]:lotesSan(),rs=[...new Set(an.map(a=>a.rancho))];
   await db.collection("eventos").add({fecha:$("#s-fecha").value||hoy(),tipo,producto:$("#s-prod").value.trim(),dosis:$("#s-dosis").value.trim(),...(parseFloat($("#s-precio").value)>0?{precio:parseFloat($("#s-precio").value)}:{}),rancho:ind?(rs.length===1?rs[0]:"Varios"):$("#s-rancho").value,lotes:ls,lotesNombres:ls.map(loteNombre),individual:ind,diagnostico:ind?$("#s-diag").value.trim():"",animales:an.map(a=>a.numero).sort(cmpN),nota:$("#s-nota").value.trim(),creado:Date.now()});
-  $("#s-nota").value="";$("#s-precio").value="";infoPrecio();if(ind){$("#s-nums").value="";$("#s-diag").value="";contarSan()}toast(`Guardado: ${tipo} a ${plural(an.length,"animal","animales")}`)})};
+  $("#s-nota").value="";$("#s-precio").value="";infoPrecio();sSel.clear();contarSan();if(ind){$("#s-nums").value="";$("#s-diag").value="";contarSan()}toast(`Guardado: ${tipo} a ${plural(an.length,"animal","animales")}`)})};
 
 /* ---------- COMPRAS ---------- */
 const COCATS=["Medicamentos","Baños y desparasitantes","Líquidos","Abono","Jeringas y material","Herramienta y equipo","Otro"];
