@@ -100,6 +100,7 @@
       <button type="button" id="rao-exp">Descargar respaldo completo</button>
       <div><label class="f" for="rao-imp">Importar respaldo (.json)</label><input type="file" id="rao-imp" accept=".json,application/json"><div class="muted small" id="rao-imp-info">Agrega o reemplaza registros con el mismo identificador. No borra nada.</div></div>
       <button type="button" class="ghost" id="rao-salir">Cerrar sesión</button></div></dialog>`);
+    const xl=q("#btn-xlsx");if(xl){xl.classList.remove("sm");q("#rao-exp").before(xl)}
     const dlg=q("#rao-cta");
     q("#rao-cta-btn").onclick=()=>dlg.showModal();q("#rao-cerrar").onclick=()=>dlg.close();
     q("#rao-inst").hidden=!instalar;

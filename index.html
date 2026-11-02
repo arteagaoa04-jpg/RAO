@@ -46,6 +46,9 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surf
 nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 9px;color:var(--muted);text-decoration:none;font-size:11px;font-weight:600;flex:1 0 58px;min-width:58px}
 nav.tabs a svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
 nav.tabs a[aria-current="page"]{color:var(--accent)}
+.subnav{margin:-4px 0 12px;overflow-x:auto;scrollbar-width:none}.subnav .seg{display:flex;width:100%}.subnav .seg a{flex:1;text-align:center;min-height:36px;padding:8px 10px;white-space:nowrap;color:var(--muted);text-decoration:none;font-weight:600;font-size:14px}.subnav .seg a[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.mas-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.mas-item{display:flex;flex-direction:column;gap:4px;color:var(--fg);text-decoration:none}.mas-item svg{width:28px;height:28px;stroke:var(--accent);fill:none;stroke-width:1.8;margin-bottom:4px}.mas-item b{font-family:var(--f-cond);font-size:20px}
+#pend .pend-item{border-top:1px solid var(--line);padding:10px 0 4px;display:flex;flex-direction:column;gap:10px}#pend .pend-item>:first-child{cursor:pointer}#pend .pend-item>:first-child h3{font-size:17px}#pend .pend-item>:first-child::after{content:"›";color:var(--muted);font-size:20px;margin-left:8px;transition:transform .15s}#pend .pend-item.open>:first-child::after{transform:rotate(90deg)}#pend .pend-item:not(.open)>:not(:first-child){display:none}
 nav.tabs a:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
 @media (min-width:760px){
   nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);bottom:auto;border-top:0;border-bottom:1px solid var(--line);justify-content:center;gap:0}
@@ -191,15 +194,9 @@ button.rcard:hover{border-color:var(--accent)}
 <nav class="tabs" aria-label="Secciones">
   <a href="#resumen" data-tab="resumen"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</a>
   <a href="#animales" data-tab="animales"><svg viewBox="0 0 24 24"><path d="M6 4l3 3h6l3-3M9 7c-2 1-3 3-3 6v3c0 2 2 4 6 4s6-2 6-4v-3c0-3-1-5-3-6"/><circle cx="10" cy="12" r=".6"/><circle cx="14" cy="12" r=".6"/></svg>Animales</a>
-  <a href="#mover" data-tab="mover"><svg viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>Mover</a>
+  <a href="#partos" data-tab="partos"><svg viewBox="0 0 24 24"><path d="M12 21c-4 0-7-3-7-7 0-5 7-11 7-11s7 6 7 11c0 4-3 7-7 7z"/></svg>Reproducción</a>
   <a href="#sanidad" data-tab="sanidad"><svg viewBox="0 0 24 24"><path d="M14 4l6 6M17 7l-9 9-3 1 1-3 9-9M8 16l-4 4M11 9l2 2"/></svg>Sanidad</a>
-  <a href="#partos" data-tab="partos"><svg viewBox="0 0 24 24"><path d="M12 21c-4 0-7-3-7-7 0-5 7-11 7-11s7 6 7 11c0 4-3 7-7 7z"/></svg>Partos</a>
-  <a href="#machos" data-tab="machos"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 20l2-12h8l2 12M12 8V4M9 4h6"/><path d="M9 14h6"/></svg>Machos</a>
-  <a href="#bajas" data-tab="bajas"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>Bajas</a>
-  <a href="#leche" data-tab="leche"><svg viewBox="0 0 24 24"><path d="M8 3h8v3l2 3v11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9l2-3z"/><path d="M6 12h12"/></svg>Leche</a>
-  <a href="#alimento" data-tab="alimento"><svg viewBox="0 0 24 24"><path d="M7 4h10l-1 3c2 2 3 5 3 8 0 3-2 5-7 5s-7-2-7-5c0-3 1-6 3-8z"/><path d="M8 7h8"/></svg>Alimento</a>
-  <a href="#compras" data-tab="compras"><svg viewBox="0 0 24 24"><path d="M4 5h2l2 11h10l2-8H7"/><circle cx="9" cy="20" r="1.2"/><circle cx="17" cy="20" r="1.2"/></svg>Compras</a>
-  <a href="#lotes" data-tab="lotes"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="1"/><rect x="13" y="4" width="8" height="7" rx="1"/><rect x="3" y="13" width="8" height="7" rx="1"/><rect x="13" y="13" width="8" height="7" rx="1"/></svg>Lotes</a>
+  <a href="#mas" data-tab="mas"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Más</a>
 </nav>
 
 <div class="wrap">
@@ -211,12 +208,15 @@ button.rcard:hover{border-color:var(--accent)}
 
   <!-- RESUMEN -->
   <section class="view" id="v-resumen">
-    <div class="card hidden" id="alim-card" style="border-color:var(--warn)"></div>
-    <div class="card hidden" id="ins-card" style="border-color:var(--warn)"></div>
-    <div class="card hidden" id="ex-card" style="border-color:var(--warn)"></div>
-    <div class="card hidden" id="dst-card" style="border-color:var(--warn)"></div>
-    <div class="card hidden" id="pp-card" style="border-color:var(--warn)"></div>
-    <div class="card hidden" id="ac-card" style="border-color:var(--warn)"></div>
+    <div class="card hidden" id="pend" style="border-color:var(--warn)">
+      <div class="row between"><h3>Pendientes</h3><span class="pill warn" id="pend-n"></span></div>
+      <div class="pend-item hidden" id="alim-card"></div>
+      <div class="pend-item hidden" id="ins-card"></div>
+      <div class="pend-item hidden" id="ex-card"></div>
+      <div class="pend-item hidden" id="ac-card"></div>
+      <div class="pend-item hidden" id="pp-card"></div>
+      <div class="pend-item hidden" id="dst-card"></div>
+    </div>
     <button type="button" class="card rcard" id="rep-tile" aria-expanded="false" aria-controls="rep-full">
       <div class="row between"><h3>Resumen de <span id="rt-mes"></span></h3><span class="small" style="color:var(--accent);font-weight:600" id="rt-ver">Ver resumen ↓</span></div>
       <div class="rt" id="rt-kpis"></div>
@@ -283,6 +283,7 @@ button.rcard:hover{border-color:var(--accent)}
 
   <!-- ANIMALES -->
   <section class="view" id="v-animales" hidden>
+    <div class="subnav" data-sub="animales"></div>
     <div class="row between"><h2>Animales</h2><button class="pri" id="btn-alta">+ Agregar</button></div>
     <div class="card">
       <div class="row" style="flex-wrap:nowrap"><input id="a-q" inputmode="search" autocomplete="off" placeholder="Buscar arete" aria-label="Buscar arete"><button type="button" class="sm" id="a-filt-btn" aria-expanded="false">Filtros</button></div>
@@ -300,6 +301,7 @@ button.rcard:hover{border-color:var(--accent)}
 
   <!-- MOVER -->
   <section class="view" id="v-mover" hidden>
+    <div class="subnav" data-sub="mover"></div>
     <h2>Mover animales entre ranchos</h2>
     <div class="card">
       <h3>1 · Toca los animales que vas a mover</h3>
@@ -393,6 +395,7 @@ button.rcard:hover{border-color:var(--accent)}
 
   <!-- BAJAS -->
   <section class="view" id="v-machos" hidden>
+    <div class="subnav" data-sub="machos"></div>
     <div><h2>Machos</h2><p class="muted small" style="margin:4px 0 0">Pesaje de toretes y becerros. Los toros no se pesan.</p></div>
     <div class="card">
       <div class="fields">
@@ -414,6 +417,7 @@ button.rcard:hover{border-color:var(--accent)}
   </section>
 
   <section class="view" id="v-bajas" hidden>
+    <div class="subnav" data-sub="bajas"></div>
     <div><h2>Bajas</h2><p class="muted small" style="margin:4px 0 0">Animales vendidos o muertos. Ya no cuentan en ranchos ni lotes. Para dar de baja, abre la ficha del animal en Animales.</p></div>
     <div class="stats">
       <div class="stat"><span class="lbl">Vendidos <span class="bj-anio"></span></span><b id="bj-st-v">0</b></div>
@@ -432,6 +436,7 @@ button.rcard:hover{border-color:var(--accent)}
 
   <!-- LECHE -->
   <section class="view" id="v-compras" hidden>
+    <div class="subnav" data-sub="compras"></div>
     <div><h2>Compras</h2><p class="muted small" style="margin:4px 0 0">Lo que se compra para los ranchos: baños, medicamentos, jeringas, material.</p></div>
     <div class="stats">
       <div class="stat"><span class="lbl" id="co-st-ml">Este mes</span><b id="co-st-m">$0</b><span class="muted small" id="co-st-md"></span></div>
@@ -464,7 +469,18 @@ button.rcard:hover{border-color:var(--accent)}
     <datalist id="dl-co"></datalist><datalist id="dl-co-uni"></datalist><datalist id="dl-co-prov"></datalist>
   </section>
 
+  <section class="view" id="v-mas" hidden>
+    <h2>Más</h2>
+    <div class="mas-grid">
+      <a class="card mas-item" href="#leche" data-go="leche"><svg viewBox="0 0 24 24"><path d="M8 3h8v3l2 3v11a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9l2-3z"/><path d="M6 12h12"/></svg><b>Leche</b><span class="muted small">Entregas y pagos</span></a>
+      <a class="card mas-item" href="#alimento" data-go="alimento"><svg viewBox="0 0 24 24"><path d="M7 4h10l-1 3c2 2 3 5 3 8 0 3-2 5-7 5s-7-2-7-5c0-3 1-6 3-8z"/><path d="M8 7h8"/></svg><b>Alimento</b><span class="muted small">Recetas, insumos y entregas</span></a>
+      <a class="card mas-item" href="#compras" data-go="compras"><svg viewBox="0 0 24 24"><path d="M4 5h2l2 11h10l2-8H7"/><circle cx="9" cy="20" r="1.2"/><circle cx="17" cy="20" r="1.2"/></svg><b>Compras</b><span class="muted small">Gastos y existencias</span></a>
+      <a class="card mas-item" href="#lotes" data-go="lotes"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="1"/><rect x="13" y="4" width="8" height="7" rx="1"/><rect x="3" y="13" width="8" height="7" rx="1"/><rect x="13" y="13" width="8" height="7" rx="1"/></svg><b>Lotes</b><span class="muted small">Lotes de cada rancho</span></a>
+    </div>
+  </section>
+
   <section class="view" id="v-leche" hidden>
+    <div class="subnav" data-sub="leche"></div>
     <div><h2>Leche entregada</h2><p class="muted small" style="margin:4px 0 0">Las semanas abren el domingo y cierran el sábado. Toca una semana para ver lo entregado cada día.</p></div>
     <div class="stats">
       <div class="stat"><span class="lbl">Litros esta semana</span><b id="lc-sem">0 L</b></div>
@@ -486,6 +502,7 @@ button.rcard:hover{border-color:var(--accent)}
 
   <!-- ALIMENTO -->
   <section class="view" id="v-alimento" hidden>
+    <div class="subnav" data-sub="alimento"></div>
     <div><h2>Alimento</h2><p class="muted small" style="margin:4px 0 0">Insumos, recetas y lo que preparas. Al registrar una preparación se descuentan solos los ingredientes de la receta.</p></div>
     <div class="seg" role="group" aria-label="Apartado" style="align-self:flex-start;max-width:100%;overflow-x:auto"><button type="button" data-al="prep" aria-pressed="true">Preparar</button><button type="button" data-al="ent" aria-pressed="false">Entregar</button><button type="button" data-al="inv" aria-pressed="false">Insumos</button><button type="button" data-al="form" aria-pressed="false">Recetas</button><button type="button" data-al="mov" aria-pressed="false">Historial</button></div>
 
@@ -584,6 +601,7 @@ button.rcard:hover{border-color:var(--accent)}
 
   <!-- LOTES -->
   <section class="view" id="v-lotes" hidden>
+    <div class="subnav" data-sub="lotes"></div>
     <div><h2>Lotes por rancho</h2><p class="muted small" style="margin:4px 0 0">Crea aquí los lotes de cada rancho. Después los usas al dar de alta, mover y vacunar.</p></div>
     <div class="grid" id="l-ranchos"></div>
   </section>
@@ -705,6 +723,7 @@ button.rcard:hover{border-color:var(--accent)}
       <button type="button" id="rao-exp">Descargar respaldo completo</button>
       <div><label class="f" for="rao-imp">Importar respaldo (.json)</label><input type="file" id="rao-imp" accept=".json,application/json"><div class="muted small" id="rao-imp-info">Agrega o reemplaza registros con el mismo identificador. No borra nada.</div></div>
       <button type="button" class="ghost" id="rao-salir">Cerrar sesión</button></div></dialog>`);
+    const xl=q("#btn-xlsx");if(xl){xl.classList.remove("sm");q("#rao-exp").before(xl)}
     const dlg=q("#rao-cta");
     q("#rao-cta-btn").onclick=()=>dlg.showModal();q("#rao-cerrar").onclick=()=>dlg.close();
     q("#rao-inst").hidden=!instalar;
@@ -755,8 +774,12 @@ const ranchoOpts=todos=>(todos?'<option value="">Todos los ranchos</option>':"")
 function loteOpts(r,{todos=false}={}){return(todos?'<option value="*">Todos los lotes</option>':"")+lotesDe(r).map(l=>`<option value="${l.id}">${esc(l.nombre)}</option>`).join("")+'<option value="">Sin lote</option>'}
 
 /* ---------- navegación ---------- */
-const TABS=["resumen","rancho","lista","alta","animales","mover","sanidad","partos","machos","bajas","leche","alimento","compras","lotes"];
-function irA(t){if(!TABS.includes(t))t="resumen";TABS.forEach(x=>{$("#v-"+x).hidden=x!==t});document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.dataset.tab===t)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});try{document.querySelector("nav.tabs a[aria-current]")?.scrollIntoView({inline:"nearest",block:"nearest"})}catch{}window.scrollTo(0,0)}
+const TABS=["mas","resumen","rancho","lista","alta","animales","mover","sanidad","partos","machos","bajas","leche","alimento","compras","lotes"];
+const GRUPOS={resumen:["resumen","rancho","lista"],animales:["animales","alta","mover","machos","bajas"],partos:["partos"],sanidad:["sanidad"],mas:["mas","leche","alimento","compras","lotes"]};
+const SUBS={animales:[["animales","Lista"],["mover","Mover"],["machos","Pesajes"],["bajas","Bajas"]],mas:[["leche","Leche"],["alimento","Alimento"],["compras","Compras"],["lotes","Lotes"]]};
+const grupoDe=t=>Object.keys(GRUPOS).find(g=>GRUPOS[g].includes(t))||"resumen";
+document.querySelectorAll(".subnav").forEach(d=>{const g=grupoDe(d.dataset.sub);d.innerHTML=`<div class="seg" role="group" aria-label="Secciones de ${g==="mas"?"Más":"Animales"}">${SUBS[g].map(([k,n])=>`<a href="#${k}" data-go="${k}" role="button" aria-pressed="${k===d.dataset.sub}">${n}</a>`).join("")}</div>`});
+function irA(t){if(!TABS.includes(t))t="resumen";TABS.forEach(x=>{$("#v-"+x).hidden=x!==t});const g=grupoDe(t);document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.dataset.tab===g)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});try{document.querySelector("nav.tabs a[aria-current]")?.scrollIntoView({inline:"nearest",block:"nearest"})}catch{}window.scrollTo(0,0)}
 document.querySelectorAll("nav.tabs a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();irA(a.dataset.tab);try{history.replaceState(null,"","#"+a.dataset.tab)}catch{}}));
 
 /* ---------- RESUMEN ---------- */
@@ -788,7 +811,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-destetar]"
     await mover(xs.map(x=>x.a.numero),r,l.id,hoy(),"Destete (4 meses)");toast(`${plural(xs.length,"becerro movido","becerros movidos")} a ${l.nombre} en ${r}`)})});
 
 function renderResumen(){
-  renderAlimAlerta();renderInsAlerta();renderExAlerta();renderDestetes();renderPorParir();renderAcercar();
+  renderAlimAlerta();renderInsAlerta();renderExAlerta();renderDestetes();renderPorParir();renderAcercar();renderPend();
   const act=activos(),anio=String(new Date().getFullYear());
   $("#st-cab").textContent=act.length;
   $("#st-anio").textContent=anio;
@@ -1350,6 +1373,8 @@ function trim(d){if(d==null)return"";if(d<40)return"menos de 40 días";if(d<=90)
 const trimC=d=>d==null?"":d<40?"<40":d<=90?"1T":d<=180?"2T":d<=240?"3T":"parto";
 function partoProb(pz){const d=diasPz(pz);return d==null?"":addDias(pz.fecha,Math.round(GEST-d))}
 const ACERCAR=[210,230];
+function renderPend(){const its=[...document.querySelectorAll("#pend .pend-item")],v=its.filter(x=>!x.classList.contains("hidden"));$("#pend").classList.toggle("hidden",!v.length);$("#pend-n").textContent=v.length;if(v.length===1)v[0].classList.add("open")}
+document.addEventListener("click",e=>{const h=e.target.closest("#pend .pend-item>:first-child");if(h)h.parentElement.classList.toggle("open")});
 const ranchosOrdena=()=>RANCHOS.filter(r=>lotesDe(r).some(l=>/orde[ñn]/i.test(l.nombre)));
 function porAcercar(){return activos().filter(a=>a.prenez?.resultado==="Preñada").map(a=>({a,d:diasHoy(a.prenez)})).filter(x=>x.d!=null&&x.d>=ACERCAR[0]).sort((x,y)=>y.d-x.d)}
 function renderAcercar(){const xs=porAcercar(),c=$("#ac-card");c.classList.toggle("hidden",!xs.length);if(!xs.length)return;const ro=ranchosOrdena(),falta=xs.filter(x=>!ro.includes(x.a.rancho));
