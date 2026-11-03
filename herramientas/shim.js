@@ -6,6 +6,12 @@
   const q=s=>document.querySelector(s);
   const avisar=m=>{if(typeof toast==="function")toast(m);else alert(m)};
 
+  if(typeof firebase==="undefined"){
+    window.claude={use:()=>new Promise(()=>{})};
+    document.addEventListener("DOMContentLoaded",()=>{const d=document.createElement("div");d.id="rao-login";d.style.cssText="position:fixed;inset:0;z-index:999;background:#000;color:#f2f0ea;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;font-family:system-ui";
+      d.innerHTML='<b style="font-size:28px">RAO</b><p style="color:#9b978c;max-width:300px;margin:0">No se pudo cargar la app. Revisa que tengas señal o wifi e intenta de nuevo.</p><button type="button" style="padding:10px 18px;border-radius:10px;border:0;background:#f2c230;color:#141000;font-weight:600" onclick="location.reload()">Reintentar</button>';document.body.appendChild(d)});
+    return;
+  }
   if(!cfg||!cfg.apiKey||/PEGAR/.test(cfg.apiKey)){
     window.claude={use:()=>Promise.reject(new Error("Falta la configuración de Firebase"))};
     document.addEventListener("DOMContentLoaded",()=>{const n=q("#sin-db");if(n){n.textContent="Falta la configuración de Firebase (firebase-config.js).";n.classList.remove("hidden")}});
@@ -63,7 +69,7 @@
   let decidido=false;
   auth.onAuthStateChanged(async u=>{decidido=true;
     if(!u){pantalla("Entra con tu cuenta de Google para ver y guardar tus datos.");return}
-    try{await fs.collection("config").limit(1).get()}catch(e){
+    try{await Promise.race([fs.collection("config").limit(1).get(),new Promise(ok=>setTimeout(ok,4000))])}catch(e){
       if(e.code==="permission-denied"){pantalla(`La cuenta ${u.email} no tiene acceso a RAO.`,false);return}}
     q("#rao-login")?.setAttribute("hidden","");
     const em=q("#rao-email");if(em)em.textContent=u.email;
