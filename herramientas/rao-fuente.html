@@ -1259,6 +1259,14 @@ function interpPalp(v){v=String(v??"").trim();if(v==="")return null;if(v==="00")
   const e=n===0?PCOD[1]:n>=5&&n<=10?PCOD[2]:n===15?PCOD[3]:n===16?PCOD[4]:n===20?PCOD[5]:n>=30&&n<=35?PCOD[6]:null;
   return e?{codigo:c,estado:e[1],corto:e[2],resultado:"Vacía"}:{codigo:c,estado:"Código fuera de la tabla",corto:c,resultado:"Vacía",raro:true}}
 const estPz=x=>{const r=x&&x.codigo!=null?interpPalp(x.codigo):null;return r&&!r.error&&!r.raro?r:{estado:x?.estado,corto:x?.corto}};
+/* Palpaciones capturadas antes de los códigos (29-30 oct 2026): el número se guardó como "días de preñez".
+   Con menos de 40 en realidad es un código del médico (no preñada). */
+function normPz(pz){if(!pz||pz.codigo!=null||pz.resultado!=="Preñada"||vacio(pz.dias)||+pz.dias>=40)return null;const r=interpPalp(String(Math.round(+pz.dias)));if(!r||r.error)return null;
+  return{resultado:r.resultado,dias:null,codigo:r.codigo,estado:r.estado,corto:r.corto}}
+let fixPzHecho=false;
+async function arreglarPz(){if(fixPzHecho||!db)return;fixPzHecho=true;try{
+  await enLotes(S.animales.filter(a=>a._fixPz),a=>db.collection("animales").doc(a.id).update({prenez:{...a.prenez,fecha:a.prenez.fecha}}));
+  await enLotes(S.palpaciones.filter(p=>p._fixPz),p=>db.collection("palpaciones").doc(p.id).update({resultado:p.resultado,dias:null,codigo:p.codigo,estado:p.estado}))}catch(e){console.error(e)}}
 const esOrdenaL=id=>/orde[ñn]/i.test(loteNombre(id));
 function trim(d){if(d==null)return"";if(d<40)return"menos de 40 días";if(d<=90)return"1er trimestre";if(d<=180)return"2º trimestre";if(d<=240)return"3er trimestre";return"por parir"}
 const trimC=d=>d==null?"":d<40?"<40":d<=90?"1T":d<=180?"2T":d<=240?"3T":"parto";
@@ -1780,8 +1788,8 @@ renderAll();
   const cols=["config","conteos","lotes","animales","movimientos","eventos","partos","palpaciones","pesos","compras","articulos","comprasMov","leche","insumos","insumosMov","formulas","preparaciones","entregas"];
   window.claude.use("downloads").then(d=>{downloads=d;$("#btn-xlsx").hidden=!d}).catch(()=>{});
   window.claude.use("assets").then(a=>{assets=a;if(abierto)renderFicha(true)}).catch(()=>{});
-  for(const c of cols)db.collection(c).onSnapshot(s=>{S[c]=s.docs.map(d=>({id:d.id,...d.data()}));S[c].forEach(x=>{if(c==="animales")x.numero=String(x.numero??x.id)});loaded.add(c);
-      $("#estado-con").textContent=loaded.size===cols.length?"Guardado en línea":"Cargando…";renderAll();if(loaded.size===cols.length)setTimeout(arreglarPalp,1500)},
+  for(const c of cols)db.collection(c).onSnapshot(s=>{S[c]=s.docs.map(d=>({id:d.id,...d.data()}));S[c].forEach(x=>{if(c==="animales"){x.numero=String(x.numero??x.id);const z=normPz(x.prenez);if(z){x.prenez={...z,fecha:x.prenez.fecha};x._fixPz=1}}if(c==="palpaciones"){const z=normPz(x);if(z){Object.assign(x,z);x._fixPz=1}}});loaded.add(c);
+      $("#estado-con").textContent=loaded.size===cols.length?"Guardado en línea":"Cargando…";renderAll();if(loaded.size===cols.length)setTimeout(()=>{arreglarPalp();arreglarPz()},1500)},
     e=>{console.error(e);$("#estado-con").textContent="Error de conexión";toast("No se pudo leer el registro. Recarga la página.")});
 })();
 </script>
