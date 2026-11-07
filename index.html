@@ -267,7 +267,7 @@ button.rcard:hover{border-color:var(--accent)}
       <div class="fields">
         <div class="field full"><label class="f" for="alta-nums">Números de arete</label>
           <input id="alta-nums" placeholder="Ej. 245  ·  245, 248, 251  ·  300-320" autocomplete="off" required>
-          <span class="muted small">Puedes poner uno, varios separados por coma, o un rango con guion.</span></div>
+          <span class="muted small"><b id="alta-ult"></b>Puedes poner uno, varios separados por coma, o un rango con guion.</span></div>
         <div class="field"><label class="f" for="alta-rancho">Rancho</label><select id="alta-rancho"></select></div>
         <div class="field"><label class="f" for="alta-lote">Lote</label><select id="alta-lote"></select></div>
         <div class="field"><label class="f" for="alta-sexo">Sexo</label><select id="alta-sexo"><option>Hembra</option><option>Macho</option></select></div>
@@ -802,7 +802,9 @@ const GRUPOS={resumen:["resumen","rancho","lista"],animales:["animales","alta","
 const SUBS={animales:[["animales","Lista"],["mover","Mover"],["machos","Pesajes"],["bajas","Bajas"]],mas:[["leche","Leche"],["alimento","Alimento"],["compras","Compras"],["lotes","Lotes"]]};
 const grupoDe=t=>Object.keys(GRUPOS).find(g=>GRUPOS[g].includes(t))||"resumen";
 document.querySelectorAll(".subnav").forEach(d=>{const g=grupoDe(d.dataset.sub);d.innerHTML=`<div class="seg" role="group" aria-label="Secciones de ${g==="mas"?"Más":"Animales"}">${SUBS[g].map(([k,n])=>`<a href="#${k}" data-go="${k}" role="button" aria-pressed="${k===d.dataset.sub}">${n}</a>`).join("")}</div>`});
-function irA(t){if(!TABS.includes(t))t="resumen";{const fb=document.getElementById("fab");if(fb)fb.hidden=["mover","lista","alta"].includes(t)}TABS.forEach(x=>{$("#v-"+x).hidden=x!==t});const g=grupoDe(t);document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.dataset.tab===g)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});try{document.querySelector("nav.tabs a[aria-current]")?.scrollIntoView({inline:"nearest",block:"nearest"})}catch{}window.scrollTo(0,0)}
+function sigNum(){const ns=S.animales.filter(a=>!a.provisional&&/^\d+$/.test(a.numero)).map(a=>a.numero);if(!ns.length)return null;const m=ns.reduce((x,y)=>BigInt(y)>BigInt(x)?y:x);const sig=String(BigInt(m)+1n).padStart(m.length,"0");return{ult:m,sig}}
+function prepAlta(){const r=sigNum(),i=$("#alta-nums");$("#alta-ult").textContent=r?`Último registrado: ${r.ult}. `:"";if(r&&!i.value.trim())i.value=r.sig}
+function irA(t){if(!TABS.includes(t))t="resumen";if(t==="alta")prepAlta();{const fb=document.getElementById("fab");if(fb)fb.hidden=["mover","lista","alta"].includes(t)}TABS.forEach(x=>{$("#v-"+x).hidden=x!==t});const g=grupoDe(t);document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.dataset.tab===g)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});try{document.querySelector("nav.tabs a[aria-current]")?.scrollIntoView({inline:"nearest",block:"nearest"})}catch{}window.scrollTo(0,0)}
 document.querySelectorAll("nav.tabs a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();irA(a.dataset.tab);try{history.replaceState(null,"","#"+a.dataset.tab)}catch{}}));
 
 /* ---------- RESUMEN ---------- */
@@ -1044,7 +1046,7 @@ $("#f-alta").onsubmit=e=>{e.preventDefault();const btn=e.submitter;guardar(btn,a
   const dup=nums.filter(n=>animal(n)),nuevos=nums.filter(n=>!animal(n));
   const base={rancho:$("#alta-rancho").value,lote:$("#alta-lote").value,sexo:$("#alta-sexo").value,categoria:$("#alta-cat").value,raza:$("#alta-raza").value.trim(),nacimiento:$("#alta-nac").value,notas:$("#alta-nota").value.trim(),estado:"Activo",alta:hoy(),creado:Date.now()};
   await enLotes(nuevos,n=>db.collection("animales").doc(docId(n)).set({...base,numero:n}));
-  $("#alta-nums").value="";
+  $("#alta-nums").value="";setTimeout(prepAlta,400);
   toast(`${plural(nuevos.length,"animal guardado","animales guardados")}${dup.length?` · ya existían: ${dup.slice(0,6).join(", ")}${dup.length>6?"…":""}`:""}`);
 })};
 
