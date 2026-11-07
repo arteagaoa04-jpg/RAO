@@ -275,7 +275,7 @@ button.rcard:hover{border-color:var(--accent)}
         <div class="field"><label class="f" for="alta-raza">Raza (opcional)</label><input id="alta-raza" list="dl-razas" autocomplete="off"></div>
         <div class="field"><label class="f" for="alta-nac">Fecha de nacimiento (opcional)</label><input type="date" id="alta-nac"></div>
         <div class="field"><label class="f" for="alta-nota">Nota (opcional)</label><input id="alta-nota" autocomplete="off"></div>
-        <div class="field full"><label class="f" for="alta-foto">Foto (opcional)</label><input type="file" id="alta-foto" accept="image/*"><span class="muted small" id="alta-foto-info">Solo cuando das de alta un animal a la vez.</span></div>
+        <div class="field full"><span class="f">Foto (opcional)</span><div class="row"><button type="button" class="sm" id="alta-cam-btn">Tomar foto</button><button type="button" class="sm ghost" id="alta-gal-btn">Elegir de galería</button><button type="button" class="sm ghost" id="alta-foto-quitar" hidden>Quitar</button></div><input type="file" id="alta-cam" accept="image/*" capture="environment" hidden><input type="file" id="alta-gal" accept="image/*" hidden><span class="muted small" id="alta-foto-info">Solo cuando das de alta un animal a la vez.</span></div>
       </div>
       <div class="row"><button class="pri" type="submit">Guardar</button><button type="button" class="ghost" id="alta-cancel">Cancelar</button></div>
     </form>
@@ -1037,7 +1037,11 @@ $("#btn-alta").onclick=()=>{irA("alta");setTimeout(()=>$("#alta-nums").focus(),5
 document.querySelectorAll("[data-alt]").forEach(b=>b.onclick=()=>{const t=b.dataset.alt;$("#f-alta").hidden=t!=="alta";$("#f-cat").hidden=t!=="cat";document.querySelectorAll("[data-alt]").forEach(x=>x.setAttribute("aria-pressed",x===b))});
 $("#a-filt-btn").onclick=()=>{const f=$("#a-filt");f.hidden=!f.hidden;$("#a-filt-btn").setAttribute("aria-expanded",!f.hidden)};
 $("#alta-sexo").onchange=()=>{$("#alta-cat").innerHTML=catOpts($("#alta-sexo").value)};$("#alta-cat").innerHTML=catOpts("Hembra");
-$("#alta-cancel").onclick=()=>irA("animales");
+$("#alta-cancel").onclick=()=>{setAltaFoto(null);irA("animales")};
+let altaFoto=null;
+function setAltaFoto(f){altaFoto=f;$("#alta-cam").value="";$("#alta-gal").value="";$("#alta-foto-quitar").hidden=!f;$("#alta-cam-btn").textContent=f?"Tomar otra":"Tomar foto";$("#alta-foto-info").textContent=f?"✓ Foto lista, se guarda al dar Guardar":"Solo cuando das de alta un animal a la vez."}
+$("#alta-cam-btn").onclick=()=>$("#alta-cam").click();$("#alta-gal-btn").onclick=()=>$("#alta-gal").click();$("#alta-foto-quitar").onclick=()=>setAltaFoto(null);
+["#alta-cam","#alta-gal"].forEach(k=>$(k).onchange=e=>{const f=e.target.files[0];if(f)setAltaFoto(f)});
 $("#alta-rancho").onchange=()=>keep($("#alta-lote"),loteOpts($("#alta-rancho").value));
 $("#a-cat").innerHTML='<option value="*">Todas</option>'+catOpts(null,null);
 ["#a-q","#a-estado","#a-lote","#a-cat","#a-foto"].forEach(s=>$(s).addEventListener("input",renderAnimales));
@@ -1046,11 +1050,11 @@ $("#f-alta").onsubmit=e=>{e.preventDefault();const btn=e.submitter;guardar(btn,a
   const nums=parseNums($("#alta-nums").value);if(!nums.length)throw new Error("Escribe al menos un número");
   const dup=nums.filter(n=>animal(n)),nuevos=nums.filter(n=>!animal(n));
   const base={rancho:$("#alta-rancho").value,lote:$("#alta-lote").value,sexo:$("#alta-sexo").value,categoria:$("#alta-cat").value,raza:$("#alta-raza").value.trim(),nacimiento:$("#alta-nac").value,notas:$("#alta-nota").value.trim(),estado:"Activo",alta:hoy(),creado:Date.now()};
-  const ff=$("#alta-foto").files[0];
+  const ff=altaFoto;
   if(ff){if(nuevos.length!==1)throw new Error("La foto es para un solo animal: pon un número a la vez");if(!assets)throw new Error("No se pueden subir fotos ahora");
     $("#alta-foto-info").textContent="Subiendo foto…";try{base.foto=(await assets.upload(await comprimir(ff))).id;base.fotoFecha=hoy()}catch(err){$("#alta-foto-info").textContent="";throw new Error(err?.code==="too_large"?"La foto es muy pesada":"No se pudo subir la foto")}}
   await enLotes(nuevos,n=>db.collection("animales").doc(docId(n)).set({...base,numero:n}));
-  $("#alta-foto").value="";$("#alta-foto-info").textContent="Solo cuando das de alta un animal a la vez.";
+  setAltaFoto(null);
   $("#alta-nums").value="";setTimeout(prepAlta,400);
   toast(`${plural(nuevos.length,"animal guardado","animales guardados")}${dup.length?` · ya existían: ${dup.slice(0,6).join(", ")}${dup.length>6?"…":""}`:""}`);
 })};
@@ -1091,7 +1095,7 @@ function renderFicha(full){
   if(!full){const h=$("#fi-hist");if(h)h.innerHTML=historial(a);const u=$("#fi-ubic");if(u)u.textContent=`${a.rancho} · ${loteNombre(a.lote)}`;return}
   body.innerHTML=`<div class="row between">${tag(a.numero,"big")}<button class="ghost sm" onclick="dlg.close()">Cerrar</button></div>
   <div class="col" id="fi-fotow" style="display:flex;flex-direction:column;gap:6px">${a.foto?`<img class="foto" src="${fotoSrc(a.foto)}" data-foto="${esc(a.foto)}" alt="Foto del animal ${esc(a.numero)}">`:""}
-    <div class="row"><button type="button" class="sm" id="fi-foto-btn">${a.foto?"Cambiar foto":"Agregar foto"}</button><input type="file" id="fi-foto" accept="image/*" hidden><span class="muted small" id="fi-foto-info">${a.foto&&a.fotoFecha?`Foto del ${fmtF(a.fotoFecha)}`:a.foto?"":"Sin foto todavía"}</span></div></div>
+    <div class="row"><button type="button" class="sm" id="fi-cam-btn">Tomar foto</button><button type="button" class="sm ghost" id="fi-foto-btn">Galería</button><input type="file" id="fi-foto" accept="image/*" hidden><input type="file" id="fi-cam" accept="image/*" capture="environment" hidden><span class="muted small" id="fi-foto-info">${a.foto&&a.fotoFecha?`Foto del ${fmtF(a.fotoFecha)}`:a.foto?"":"Sin foto todavía"}</span></div></div>
   ${estadoDe(a)==="Activo"?`<div class="row" style="gap:8px">${a.sexo==="Hembra"?`<button type="button" class="sm" data-facc="palpar">Palpar</button><button type="button" class="sm" data-facc="parto">Registrar parto</button>`:""}<button type="button" class="sm" data-facc="sanidad">Sanidad</button>${a.sexo==="Macho"&&!esToro(a)?`<button type="button" class="sm" data-facc="pesar">Pesar</button>`:""}</div>`:""}
   ${a.provisional?`<div class="baja" style="border-color:var(--accent);background:var(--accent-soft)"><b>Esta cría aún no tiene número</b><div class="row" style="flex-wrap:nowrap"><input id="fi-num" placeholder="Número de arete" autocomplete="off" aria-label="Número de arete"><button class="pri" id="fi-asig">Asignar</button></div></div>`:""}
   <div><div class="lbl">Ubicación</div><div style="font-weight:600" id="fi-ubic">${esc(a.rancho)} · ${esc(loteNombre(a.lote))}</div>${a.sexo==="Macho"&&!esToro(a)?(ps=>ps.length?`<div class="muted small">Último peso ${fKg(ps[ps.length-1].kg)} (${fmtF(ps[ps.length-1].fecha)})${gdp(ps[ps.length-2],ps[ps.length-1])!=null?` · ${fG(gdp(ps[ps.length-2],ps[ps.length-1]))}`:""}</div>`:'<div class="muted small">Sin pesajes</div>')(pesosDe(a.numero)):""}${a.sexo==="Hembra"?`<div class="muted small">${txtPartos(partosDe(a.numero))}</div>${txtPrenez(a)?`<div class="small"><span class="pill ${a.prenez?.resultado==="Preñada"?"ok":"off"}">${txtPrenez(a)}</span></div>`:""}`:""}</div>
@@ -1135,6 +1139,7 @@ function renderFicha(full){
   if($("#fi-reac"))$("#fi-reac").onclick=e=>dosPasos(e.target,()=>guardar(e.target,async()=>{await db.collection("animales").doc(a.id).update({estado:"Activo",baja:null});renderFicha(true);toast(`Animal ${a.numero} reactivado`)}));
   $("#fi-foto-btn").onclick=()=>$("#fi-foto").click();
   body.querySelectorAll("[data-facc]").forEach(b=>b.onclick=()=>accion(b.dataset.facc,a));
+  $("#fi-cam-btn").onclick=()=>$("#fi-cam").click();$("#fi-cam").onchange=e=>$("#fi-foto").onchange(e);
   $("#fi-foto").onchange=e=>{const f=e.target.files[0];if(!f)return;guardar($("#fi-foto-btn"),async()=>{if(!assets)throw new Error("No se pueden subir fotos ahora");$("#fi-foto-info").textContent="Subiendo foto…";
     let id;try{id=(await assets.upload(await comprimir(f))).id}catch(err){$("#fi-foto-info").textContent="";throw new Error(err?.code==="too_large"?"La foto es muy pesada":"No se pudo guardar la foto")}
     await db.collection("animales").doc(a.id).update({foto:id,fotoFecha:hoy()});a.foto=id;a.fotoFecha=hoy();renderFicha(true);toast(`Foto del ${a.numero} guardada`)})};
