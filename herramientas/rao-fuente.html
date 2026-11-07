@@ -262,6 +262,7 @@ button.rcard:hover{border-color:var(--accent)}
         <div class="field"><label class="f" for="alta-raza">Raza (opcional)</label><input id="alta-raza" list="dl-razas" autocomplete="off"></div>
         <div class="field"><label class="f" for="alta-nac">Fecha de nacimiento (opcional)</label><input type="date" id="alta-nac"></div>
         <div class="field"><label class="f" for="alta-nota">Nota (opcional)</label><input id="alta-nota" autocomplete="off"></div>
+        <div class="field full"><label class="f" for="alta-foto">Foto (opcional)</label><input type="file" id="alta-foto" accept="image/*"><span class="muted small" id="alta-foto-info">Solo cuando das de alta un animal a la vez.</span></div>
       </div>
       <div class="row"><button class="pri" type="submit">Guardar</button><button type="button" class="ghost" id="alta-cancel">Cancelar</button></div>
     </form>
@@ -903,7 +904,11 @@ $("#f-alta").onsubmit=e=>{e.preventDefault();const btn=e.submitter;guardar(btn,a
   const nums=parseNums($("#alta-nums").value);if(!nums.length)throw new Error("Escribe al menos un número");
   const dup=nums.filter(n=>animal(n)),nuevos=nums.filter(n=>!animal(n));
   const base={rancho:$("#alta-rancho").value,lote:$("#alta-lote").value,sexo:$("#alta-sexo").value,categoria:$("#alta-cat").value,raza:$("#alta-raza").value.trim(),nacimiento:$("#alta-nac").value,notas:$("#alta-nota").value.trim(),estado:"Activo",alta:hoy(),creado:Date.now()};
+  const ff=$("#alta-foto").files[0];
+  if(ff){if(nuevos.length!==1)throw new Error("La foto es para un solo animal: pon un número a la vez");if(!assets)throw new Error("No se pueden subir fotos ahora");
+    $("#alta-foto-info").textContent="Subiendo foto…";try{base.foto=(await assets.upload(await comprimir(ff))).id;base.fotoFecha=hoy()}catch(err){$("#alta-foto-info").textContent="";throw new Error(err?.code==="too_large"?"La foto es muy pesada":"No se pudo subir la foto")}}
   await enLotes(nuevos,n=>db.collection("animales").doc(docId(n)).set({...base,numero:n}));
+  $("#alta-foto").value="";$("#alta-foto-info").textContent="Solo cuando das de alta un animal a la vez.";
   $("#alta-nums").value="";setTimeout(prepAlta,400);
   toast(`${plural(nuevos.length,"animal guardado","animales guardados")}${dup.length?` · ya existían: ${dup.slice(0,6).join(", ")}${dup.length>6?"…":""}`:""}`);
 })};
