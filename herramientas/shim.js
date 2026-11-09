@@ -2,7 +2,7 @@
    pero guardando en Firestore (cuenta de Google de Aranza). Así el código de la app no cambia. */
 (function(){
   const cfg=window.RAO_FIREBASE;
-  const COLS=["config","conteos","lotes","animales","movimientos","eventos","partos","palpaciones","pesos","compras","articulos","comprasMov","leche","insumos","insumosMov","formulas","preparaciones","entregas"];
+  const COLS=["config","conteos","lotes","animales","movimientos","eventos","partos","palpaciones","pesos","compras","articulos","comprasMov","leche","insumos","insumosMov","formulas","preparaciones","entregas","ventas"];
   const q=s=>document.querySelector(s);
   const avisar=m=>{if(typeof toast==="function")toast(m);else alert(m)};
 

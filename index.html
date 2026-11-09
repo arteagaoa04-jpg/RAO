@@ -432,7 +432,27 @@ button.rcard:hover{border-color:var(--accent)}
 
   <section class="view" id="v-bajas" hidden>
     <div class="subnav" data-sub="bajas"></div>
-    <div><h2>Bajas</h2><p class="muted small" style="margin:4px 0 0">Animales vendidos o muertos. Ya no cuentan en ranchos ni lotes. Para dar de baja, abre la ficha del animal en Animales.</p></div>
+    <div><h2>Bajas</h2><p class="muted small" style="margin:4px 0 0">Animales vendidos o muertos. Ya no cuentan en ranchos ni lotes. Para vender varios, usa “Registrar venta”. Para una muerte, abre la ficha del animal.</p></div>
+    <div class="card" id="vt-card"><details id="vt-det"><summary><b>Registrar venta</b> <span class="muted small">varios animales a la vez</span></summary>
+      <div class="fields" style="margin-top:10px">
+        <div class="field"><label class="f" for="vt-fecha">Fecha</label><input type="date" id="vt-fecha"></div>
+        <div class="field"><label class="f" for="vt-comp">Comprador</label><input id="vt-comp" list="dl-comp" autocomplete="off"><datalist id="dl-comp"></datalist></div>
+        <div class="field"><label class="f" for="vt-r">Rancho</label><select id="vt-r"></select></div>
+        <div class="field"><label class="f" for="vt-l">Lote</label><select id="vt-l"></select></div>
+      </div>
+      <div class="sec">Toca los aretes que se venden <span class="muted small" id="vt-n"></span></div>
+      <div class="tagbtns" id="vt-sel"></div>
+      <div class="fields" style="margin-top:12px">
+        <div class="field"><label class="f" for="vt-desc">Descuento al peso (%)</label><input id="vt-desc" type="number" inputmode="decimal" step="0.1" min="0" max="100" placeholder="Ej. 3"></div>
+        <div class="field"><label class="f" for="vt-modo">Precio por kilo</label><select id="vt-modo"><option value="tabla">Tabla por peso</option><option value="uno">Un solo precio</option></select></div>
+        <div class="field" id="vt-uno-w"><label class="f" for="vt-precio">Precio por kilo ($)</label><input id="vt-precio" type="number" inputmode="decimal" step="0.01" min="0"></div>
+      </div>
+      <div id="vt-tabla-w"><div class="list" id="vt-tabla"></div><button type="button" class="sm ghost" id="vt-tabla-mas" style="margin-top:6px">+ Rango</button></div>
+      <div id="vt-pesos" style="margin-top:12px"></div>
+      <div id="vt-tot" style="margin-top:8px"></div>
+      <div style="margin-top:10px"><button class="pri" id="vt-go">Guardar venta</button></div>
+    </details></div>
+    <div class="card"><h3 style="margin:0 0 6px">Ventas <span class="muted small" id="vt-hist-n"></span></h3><div class="list" id="vt-lista"></div></div>
     <div class="stats">
       <div class="stat"><span class="lbl">Vendidos <span class="bj-anio"></span></span><b id="bj-st-v">0</b></div>
       <div class="stat"><span class="lbl">Muertos <span class="bj-anio"></span></span><b id="bj-st-m">0</b></div>
@@ -644,7 +664,7 @@ button.rcard:hover{border-color:var(--accent)}
    pero guardando en Firestore (cuenta de Google de Aranza). Así el código de la app no cambia. */
 (function(){
   const cfg=window.RAO_FIREBASE;
-  const COLS=["config","conteos","lotes","animales","movimientos","eventos","partos","palpaciones","pesos","compras","articulos","comprasMov","leche","insumos","insumosMov","formulas","preparaciones","entregas"];
+  const COLS=["config","conteos","lotes","animales","movimientos","eventos","partos","palpaciones","pesos","compras","articulos","comprasMov","leche","insumos","insumosMov","formulas","preparaciones","entregas","ventas"];
   const q=s=>document.querySelector(s);
   const avisar=m=>{if(typeof toast==="function")toast(m);else alert(m)};
 
@@ -770,7 +790,7 @@ const catOpts=(sexo,sel,vacio=true)=>(vacio?'<option value="">Sin categoría</op
 function resumenCats(an){const c={};an.forEach(a=>{const k=a.categoria||"";c[k]=(c[k]||0)+1});const orden=[...CATS.Hembra,...CATS.Macho,""];return orden.filter(k=>c[k]).map(k=>`${c[k]} ${k?k.toLowerCase()+(c[k]>1?(k.endsWith("a")||k.endsWith("o")?"s":"es"):""):"sin categoría"}`).join(" · ")}
 const RANCHOS=["La Loma","El Bajo","Los Limones","Santa Blanca","Las 25"];
 const TIPOS=["Vacunación","Desparasitación","Vitaminas","Baño garrapaticida","Tratamiento","Otro"];
-const S={config:[],conteos:[],lotes:[],animales:[],movimientos:[],eventos:[],partos:[],palpaciones:[],pesos:[],compras:[],articulos:[],comprasMov:[],leche:[],insumos:[],insumosMov:[],formulas:[],preparaciones:[],entregas:[]};
+const S={config:[],conteos:[],lotes:[],animales:[],movimientos:[],eventos:[],partos:[],palpaciones:[],pesos:[],compras:[],articulos:[],comprasMov:[],leche:[],insumos:[],insumosMov:[],formulas:[],preparaciones:[],entregas:[],ventas:[]};
 const loaded=new Set();
 let db=null,assets=null;
 async function comprimir(f){try{let b;try{b=await createImageBitmap(f,{imageOrientation:"from-image"})}catch{b=await createImageBitmap(f)}const s=Math.min(1,1600/Math.max(b.width,b.height));const c=document.createElement("canvas");c.width=Math.round(b.width*s);c.height=Math.round(b.height*s);c.getContext("2d").drawImage(b,0,0,c.width,c.height);return await new Promise(r=>c.toBlob(x=>r(x||f),"image/jpeg",.82))}catch{return f}}
@@ -1567,6 +1587,7 @@ async function moverConParto(nums,aR,aL,fecha,nota){
 
 /* ---------- BAJAS ---------- */
 function renderBajas(){
+  renderVenta();
   if(!$("#bj-fr").options.length)$("#bj-fr").innerHTML=ranchoOpts(true);
   const anio=String(new Date().getFullYear());document.querySelectorAll(".bj-anio").forEach(x=>x.textContent=anio);
   const bs=S.animales.filter(a=>estadoDe(a)!=="Activo").map(a=>({a,f:a.baja?.fecha||"",r:a.baja?.rancho||a.rancho,l:a.baja?.loteNombre||loteNombre(a.lote)}));
@@ -1579,6 +1600,61 @@ function renderBajas(){
     :`<div class="empty">${bs.length?"Ninguna baja con esos filtros.":"Aún no hay bajas. Cuando vendas o muera un animal, ábrelo en Animales y usa “Dar de baja”."}</div>`;
 }
 ["#bj-fr","#bj-ft","#bj-q"].forEach(x=>$(x).addEventListener("input",renderBajas));
+
+/* ---------- VENTAS ---------- */
+const vtSel=new Set(),vtKg={};let vtTabla=null,vtModoTocado=false;
+const VT_TABLA0=[{hasta:300,precio:""},{hasta:350,precio:""},{hasta:400,precio:""},{hasta:null,precio:""}];
+function ultVenta(){return[...S.ventas].sort((a,b)=>cmpN(b.fecha,a.fecha)||(b.creado||0)-(a.creado||0))[0]}
+function vtPrep(){if(vtTabla)return;const u=ultVenta();vtTabla=(u?.tabla?.length?u.tabla:VT_TABLA0).map(r=>({hasta:r.hasta,precio:u?.tabla?String(r.precio||""):""}));
+  if(u){if(u.descuento!=null)$("#vt-desc").value=u.descuento;if(u.precio)$("#vt-precio").value=u.precio}if(!$("#vt-fecha").value)$("#vt-fecha").value=hoy()}
+function vtAnimales(){const r=$("#vt-r").value,l=$("#vt-l").value;return activos().filter(a=>a.rancho===r&&(l==="*"||(a.lote||"")===l)).sort((a,b)=>cmpN(a.numero,b.numero))}
+function vtPrecioKg(kg){if($("#vt-modo").value==="uno")return parseFloat($("#vt-precio").value)||0;for(const r of vtTabla)if(r.hasta==null||kg<=r.hasta)return parseFloat(r.precio)||0;return 0}
+function vtCalc(){const d=Math.min(100,Math.max(0,parseFloat($("#vt-desc").value)||0));const xs=[...vtSel].map(id=>S.animales.find(a=>a.id===id)).filter(Boolean).sort((a,b)=>cmpN(a.numero,b.numero));
+  return xs.map(a=>{const kg=parseFloat(vtKg[a.id])||0,neto=Math.round(kg*(1-d/100)*100)/100,pk=kg?vtPrecioKg(kg):0;return{a,kg,neto,pk,total:Math.round(neto*pk*100)/100}})}
+function vtTotales(){const cs=vtCalc(),uno=$("#vt-modo").value==="uno";$("#vt-uno-w").hidden=!uno;$("#vt-tabla-w").hidden=uno;
+  cs.forEach(c=>{const el=document.querySelector(`[data-vtres="${c.a.id}"]`);if(el)el.textContent=c.kg?`${fKg(c.neto)} × ${fmt$(c.pk)} = ${fmt$(c.total)}`:"Falta el peso"});
+  const ok=cs.filter(c=>c.kg>0),kg=ok.reduce((s,c)=>s+c.kg,0),ne=ok.reduce((s,c)=>s+c.neto,0),t=ok.reduce((s,c)=>s+c.total,0);
+  $("#vt-tot").innerHTML=cs.length?`<div class="stats"><div class="stat"><span class="lbl">Animales</span><b>${cs.length}</b></div><div class="stat"><span class="lbl">Kg en báscula</span><b>${fKg(kg)}</b></div><div class="stat"><span class="lbl">Kg pagados</span><b>${fKg(ne)}</b></div><div class="stat"><span class="lbl">Total</span><b>${fmt$(t)}</b></div></div>`:""}
+function renderVenta(force){if(!$("#vt-r").options.length){$("#vt-r").innerHTML=ranchoOpts(false)}
+  renderVentasHist();if(!$("#vt-det").open)return;vtPrep();
+  if(!force&&document.activeElement?.closest?.("#vt-card"))return;
+  keep($("#vt-l"),loteOpts($("#vt-r").value,{todos:true}));
+  $("#dl-comp").innerHTML=[...new Set(S.ventas.map(v=>v.comprador).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join("");
+  const xs=vtAnimales();$("#vt-sel").innerHTML=xs.length?xs.map(a=>`<button type="button" class="tagbtn ${vtSel.has(a.id)?"ok":""}" data-vtsel="${esc(a.id)}" aria-pressed="${vtSel.has(a.id)}">${esc(a.numero)}${a.categoria?`<span style="display:block;font-size:11px;font-family:var(--f-body);font-weight:600;opacity:.75">${esc(a.categoria)}</span>`:""}</button>`).join(""):'<span class="muted small">No hay animales en ese lote.</span>';
+  $("#vt-n").textContent=vtSel.size?`· ${plural(vtSel.size,"seleccionado","seleccionados")}`:"";
+  $("#vt-tabla").innerHTML=vtTabla.map((r,i)=>`<div class="row" style="gap:8px;align-items:center;margin:4px 0;flex-wrap:nowrap">${r.hasta==null?`<span style="flex:1">${i?`Más de ${vtTabla[i-1].hasta} kg`:"Cualquier peso"}</span>`:`<span style="flex:1">${i?`De ${vtTabla[i-1].hasta+1} a`:"Menos de"} <input data-vthasta="${i}" type="number" inputmode="numeric" value="${r.hasta}" style="width:72px"> kg</span>`}<span>$</span><input data-vtpre="${i}" type="number" inputmode="decimal" step="0.01" min="0" value="${esc(r.precio)}" placeholder="por kg" style="width:90px">${vtTabla.length>1&&r.hasta!=null?`<button type="button" class="sm ghost" data-vtquita="${i}" aria-label="Quitar rango">✕</button>`:""}</div>`).join("");
+  const cs=vtCalc();$("#vt-pesos").innerHTML=cs.length?`<div class="sec">Peso de cada uno (kg en báscula)</div>`+cs.map(c=>{const u=pesosDe(c.a.numero).slice(-1)[0];return`<div class="row" style="gap:8px;align-items:center;margin:6px 0">${tag(c.a.numero)}<input data-vtkg="${esc(c.a.id)}" type="number" inputmode="decimal" step="0.1" min="0" value="${esc(vtKg[c.a.id]??"")}" placeholder="${u?"último "+u.kg:"kg"}" style="width:96px"><span class="muted small" data-vtres="${esc(c.a.id)}"></span></div>`}).join(""):"";
+  vtTotales()}
+function renderVentasHist(){const vs=[...S.ventas].sort((a,b)=>cmpN(b.fecha,a.fecha)||(b.creado||0)-(a.creado||0)),anio=String(new Date().getFullYear());
+  const ta=vs.filter(v=>(v.fecha||"").startsWith(anio)).reduce((s,v)=>s+(+v.total||0),0);$("#vt-hist-n").textContent=vs.length?`· ${anio}: ${fmt$0(ta)}`:"";
+  const op=new Set([...document.querySelectorAll("#vt-lista details[open]")].map(d=>d.dataset.v));
+  $("#vt-lista").innerHTML=vs.length?vs.map(v=>`<details data-v="${esc(v.id)}" ${op.has(v.id)?"open":""} style="padding:8px 0;border-bottom:1px solid var(--line)"><summary style="color:var(--fg);font-weight:400"><b>${fmtF(v.fecha)}</b> · ${esc(v.comprador||"Sin comprador")} · ${plural((v.animales||[]).length,"animal","animales")} · <b>${fmt$(+v.total||0)}</b></summary>
+    <div class="muted small" style="margin:6px 0">${esc(v.rancho||"")} · descuento ${+v.descuento||0}% · ${fKg(+v.kg||0)} en báscula, ${fKg(+v.kgNeto||0)} pagados${v.modo==="uno"?` · ${fmt$(+v.precio||0)}/kg`:" · tabla: "+(v.tabla||[]).map((r,i,t)=>`${r.hasta==null?(i?`más de ${t[i-1].hasta}`:"todo"):(i?`${t[i-1].hasta+1}–${r.hasta}`:`menos de ${r.hasta}`)} ${fmt$(+r.precio||0)}`).join(", ")}</div>
+    ${(v.animales||[]).map(x=>`<div class="small" style="margin:2px 0">${esc(x.numero)}: ${fKg(x.kg)} → ${fKg(x.neto)} × ${fmt$(x.precioKg)} = <b>${fmt$(x.total)}</b></div>`).join("")}
+    <button type="button" class="sm ghost" data-vtdel="${esc(v.id)}" style="margin-top:8px">Deshacer venta</button></details>`).join(""):'<div class="empty">Aún no hay ventas registradas.</div>'}
+$("#vt-det").addEventListener("toggle",()=>renderVenta(true));
+$("#vt-r").onchange=()=>{$("#vt-l").innerHTML="";renderVenta(true);$("#vt-l").value="*";renderVenta(true)};$("#vt-l").onchange=()=>renderVenta(true);
+$("#vt-modo").onchange=()=>{vtModoTocado=true;vtTotales()};["#vt-desc","#vt-precio"].forEach(k=>$(k).addEventListener("input",vtTotales));
+$("#vt-sel").addEventListener("click",e=>{const b=e.target.closest("[data-vtsel]");if(!b)return;const id=b.dataset.vtsel;vtSel.has(id)?vtSel.delete(id):vtSel.add(id);
+  if(!vtModoTocado&&vtSel.size){const xs=[...vtSel].map(i=>S.animales.find(a=>a.id===i));$("#vt-modo").value=xs.some(a=>a?.sexo==="Macho")?"tabla":"uno"}renderVenta(true)});
+$("#vt-card").addEventListener("input",e=>{const t=e.target;if(t.dataset.vtkg){vtKg[t.dataset.vtkg]=t.value;vtTotales()}else if(t.dataset.vtpre){vtTabla[+t.dataset.vtpre].precio=t.value;vtTotales()}else if(t.dataset.vthasta){const v=parseFloat(t.value);if(v>0)vtTabla[+t.dataset.vthasta].hasta=v;vtTotales()}});
+$("#vt-card").addEventListener("change",e=>{if(e.target.dataset.vthasta){vtTabla.sort((a,b)=>(a.hasta??1e9)-(b.hasta??1e9));renderVenta(true)}});
+$("#vt-card").addEventListener("click",e=>{const q=e.target.closest("[data-vtquita]");if(!q)return;vtTabla.splice(+q.dataset.vtquita,1);renderVenta(true)});
+$("#vt-tabla-mas").onclick=()=>{const fin=vtTabla.filter(r=>r.hasta!=null).slice(-1)[0];vtTabla.splice(vtTabla.length-(vtTabla.at(-1).hasta==null?1:0),0,{hasta:(fin?.hasta||300)+50,precio:""});renderVenta(true)};
+$("#vt-go").onclick=e=>guardar(e.target,async()=>{const cs=vtCalc();if(!cs.length)throw new Error("Toca los aretes que se venden");
+  const sinKg=cs.filter(c=>!c.kg);if(sinKg.length)throw new Error(`Falta el peso de ${sinKg.map(c=>c.a.numero).slice(0,6).join(", ")}`);
+  const sinP=cs.filter(c=>!c.pk);if(sinP.length)throw new Error(`Falta el precio por kilo para ${sinP.map(c=>c.a.numero).slice(0,6).join(", ")}`);
+  const modo=$("#vt-modo").value,fecha=$("#vt-fecha").value||hoy(),comp=$("#vt-comp").value.trim(),d=parseFloat($("#vt-desc").value)||0,id="v"+Date.now();
+  const v={fecha,comprador:comp,rancho:$("#vt-r").value,descuento:d,modo,precio:modo==="uno"?parseFloat($("#vt-precio").value)||0:null,tabla:vtTabla.map(r=>({hasta:r.hasta,precio:parseFloat(r.precio)||0})),
+    animales:cs.map(c=>({id:c.a.id,numero:c.a.numero,sexo:c.a.sexo||"",categoria:c.a.categoria||"",kg:c.kg,neto:c.neto,precioKg:c.pk,total:c.total})),
+    kg:Math.round(cs.reduce((s,c)=>s+c.kg,0)*10)/10,kgNeto:Math.round(cs.reduce((s,c)=>s+c.neto,0)*100)/100,total:Math.round(cs.reduce((s,c)=>s+c.total,0)*100)/100,creado:Date.now()};
+  await db.collection("ventas").doc(id).set(v);
+  await enLotes(cs,c=>db.collection("animales").doc(c.a.id).update({estado:"Vendido",baja:{motivo:"Vendido",fecha,nota:`Venta${comp?" a "+comp:""} · ${fKg(c.kg)} · ${fmt$(c.total)}`,foto:"",rancho:c.a.rancho,loteNombre:loteNombre(c.a.lote),venta:id,kg:c.kg,neto:c.neto,precioKg:c.pk,total:c.total,creado:Date.now()}}));
+  vtSel.clear();cs.forEach(c=>delete vtKg[c.a.id]);toast(`Venta guardada: ${plural(cs.length,"animal","animales")} · ${fmt$(v.total)}`);$("#vt-det").open=false;renderBajas()});
+$("#vt-lista").addEventListener("click",e=>{const b=e.target.closest("[data-vtdel]");if(!b)return;dosPasos(b,()=>guardar(b,async()=>{const v=S.ventas.find(x=>x.id===b.dataset.vtdel);if(!v)return;
+  await enLotes(v.animales||[],x=>{const a=S.animales.find(y=>y.id===x.id);return a&&a.baja?.venta===v.id?db.collection("animales").doc(a.id).update({estado:"Activo",baja:null}):null});
+  await db.collection("ventas").doc(v.id).delete();toast("Venta deshecha: los animales regresaron a su lote")}))});
+
 
 /* ---------- LECHE ---------- */
 const DIAS=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
@@ -1944,7 +2020,7 @@ renderAll();
 (async()=>{
   db=await window.claude?.use?.("db")??null;
   if(!db){$("#estado-con").textContent="Sin conexión";$("#sin-db").classList.remove("hidden");return}
-  const cols=["config","conteos","lotes","animales","movimientos","eventos","partos","palpaciones","pesos","compras","articulos","comprasMov","leche","insumos","insumosMov","formulas","preparaciones","entregas"];
+  const cols=["config","conteos","lotes","animales","movimientos","eventos","partos","palpaciones","pesos","compras","articulos","comprasMov","leche","insumos","insumosMov","formulas","preparaciones","entregas","ventas"];
   window.claude.use("downloads").then(d=>{downloads=d;$("#btn-xlsx").hidden=!d}).catch(()=>{});
   window.claude.use("assets").then(a=>{assets=a;if(abierto)renderFicha(true)}).catch(()=>{});
   for(const c of cols)db.collection(c).onSnapshot(s=>{S[c]=s.docs.map(d=>({id:d.id,...d.data()}));S[c].forEach(x=>{if(c==="animales"){x.numero=String(x.numero??x.id);const z=normPz(x.prenez);if(z){x.prenez={...z,fecha:x.prenez.fecha};x._fixPz=1}}if(c==="palpaciones"){const z=normPz(x);if(z){Object.assign(x,z);x._fixPz=1}}});loaded.add(c);
